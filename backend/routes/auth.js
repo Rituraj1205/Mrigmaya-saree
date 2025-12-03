@@ -39,11 +39,17 @@ const isAdminEmail = (email) => {
   return normalizeEmail(process.env.ADMIN_EMAIL) === normalizeEmail(email);
 };
 
+// Allow returning dev OTPs when delivery fails, to unblock admin or debugging flows
+const canReturnDevOtp = (userRole) =>
+  process.env.ALLOW_DEV_OTP === "true" || process.env.NODE_ENV !== "production" || userRole === "admin";
+
 const sendMobileOtp = async (user, res) => {
   const otp = generateOTP();
   user.otp = otp;
   user.otpExpires = Date.now() + 5 * 60 * 1000;
   await user.save();
+
+  const allowDevOtp = canReturnDevOtp(user?.role);
 
   try {
     if (twilioClient && process.env.TWILIO_FROM_NUMBER) {
@@ -57,11 +63,11 @@ const sendMobileOtp = async (user, res) => {
     console.log("OTP (SMS not configured):", otp);
     return res.json({
       msg: "OTP sent (development mode)",
-      devOtp: process.env.NODE_ENV !== "production" ? otp : undefined
+      devOtp: allowDevOtp ? otp : undefined
     });
   } catch (err) {
     console.error("OTP send error:", err.message);
-    if (process.env.NODE_ENV !== "production") {
+    if (allowDevOtp) {
       console.log("DEV OTP (fallback after send error):", otp);
       return res.json({
         msg: "OTP sent (development mode)",
@@ -77,36 +83,41 @@ const sendMobileOtp = async (user, res) => {
 const {
   GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET,
-  GOOGLE_REDIRECT_URI = "http://localhost:5000/api/auth/google/callback",
+  GOOGLE_REDIRECT_URI,
   FRONTEND_URL = "http://localhost:5173"
 } = process.env;
 
-const googleClient =
-  GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET
-    ? new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI)
-    : null;
+const hasGoogleConfig = Boolean(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
+const buildGoogleRedirectUri = (req) =>
+  (GOOGLE_REDIRECT_URI || `${req.protocol}://${req.get("host")}/api/auth/google/callback`).trim();
+const getGoogleClient = (redirectUri) => new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, redirectUri);
 
 const issueJwt = (userId) => jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
 router.get("/google", (req, res) => {
-  if (!googleClient) return res.status(500).json({ msg: "Google auth not configured" });
+  if (!hasGoogleConfig) return res.status(500).json({ msg: "Google auth not configured" });
   const redirect = req.query.redirect || "/";
+  const redirectUri = buildGoogleRedirectUri(req);
+  const googleClient = getGoogleClient(redirectUri);
   const url = googleClient.generateAuthUrl({
     access_type: "offline",
     prompt: "select_account",
     scope: ["openid", "profile", "email"],
+    redirect_uri: redirectUri,
     state: encodeURIComponent(redirect)
   });
   res.redirect(url);
 });
 
 router.get("/google/callback", async (req, res) => {
-  if (!googleClient) return res.status(500).send("Google auth not configured");
+  if (!hasGoogleConfig) return res.status(500).send("Google auth not configured");
   const { code, state } = req.query;
   const fallbackRedirect = decodeURIComponent(state || "/");
   if (!code) return res.redirect(`${FRONTEND_URL}/auth/google?error=missing_code`);
   try {
-    const { tokens } = await googleClient.getToken({ code, redirect_uri: GOOGLE_REDIRECT_URI });
+    const redirectUri = buildGoogleRedirectUri(req);
+    const googleClient = getGoogleClient(redirectUri);
+    const { tokens } = await googleClient.getToken({ code, redirect_uri: redirectUri });
     const ticket = await googleClient.verifyIdToken({
       idToken: tokens.id_token,
       audience: GOOGLE_CLIENT_ID
@@ -203,7 +214,7 @@ router.post("/send-otp", async (req, res) => {
     if (normalizedEmail) {
       const result = await sendEmailOtp(normalizedEmail, otp);
       if (!result.ok) {
-        if (process.env.NODE_ENV !== "production") {
+        if (canReturnDevOtp(user?.role)) {
           return res.json({
             msg: "OTP sent (development mode)",
             devOtp: result.devOtp || otp,
@@ -224,12 +235,12 @@ router.post("/send-otp", async (req, res) => {
       console.log("OTP (SMS not configured):", otp);
       return res.json({
         msg: "OTP sent (development mode)",
-        devOtp: process.env.NODE_ENV !== "production" ? otp : undefined
+        devOtp: canReturnDevOtp(user?.role) ? otp : undefined
       });
     }
   } catch (err) {
     console.error("OTP send error:", err.message);
-    if (process.env.NODE_ENV !== "production") {
+    if (canReturnDevOtp(user?.role)) {
       console.log("DEV OTP (fallback after send error):", otp);
       return res.json({
         msg: "OTP sent (development mode)",
@@ -344,7 +355,7 @@ router.post("/register", async (req, res) => {
   try {
     const result = await sendEmailOtp(normalizedEmail, otp);
     if (!result.ok) {
-      if (process.env.NODE_ENV !== "production") {
+      if (canReturnDevOtp(user?.role)) {
         return res.json({
           msg: "OTP sent (development mode)",
           devOtp: result.devOtp || otp,
@@ -355,6 +366,14 @@ router.post("/register", async (req, res) => {
     }
   } catch (err) {
     console.error("Register send OTP error:", err.message);
+    if (canReturnDevOtp(user?.role)) {
+      console.log("DEV OTP (register fallback):", user.otp);
+      return res.json({
+        msg: "OTP sent (development mode)",
+        devOtp: user.otp,
+        note: err.message
+      });
+    }
     return res.status(500).json({ msg: "Unable to send OTP. Try again later." });
   }
 

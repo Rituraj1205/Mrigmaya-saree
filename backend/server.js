@@ -57,7 +57,8 @@ app.use(
   })
 );
 app.use(express.json({ limit: "5mb" }));
-app.use("/uploads", express.static(path.resolve("uploads")));
+// Serve uploaded assets from a stable absolute path (works even if cwd changes)
+app.use("/uploads", express.static(path.resolve(__dirname, "uploads")));
 
 app.get("/", (req, res) => res.send("Backend Running"));
 
