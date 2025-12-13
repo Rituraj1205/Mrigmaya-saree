@@ -11,8 +11,8 @@ const BLANK_IMG = "data:image/gif;base64,R0lGODlhAQABAAD/ACw=";
 const heroFallbacks = [
   {
     title: "Couture calm sarees crafted for every moment you want to own.",
-    description: "Discover contemporary silks, breezy chiffons and hand dyed pieces styled just like the Sudathi saree wall.",
-    badge: "Sudathi inspired",
+    description: "Discover contemporary silks, breezy chiffons and hand dyed pieces styled just like the signature saree wall.",
+    badge: "Signature inspired",
     tag: "Pan India delivery",
     ctaLabel: "Shop saree collection",
     ctaLink: "/products",
@@ -48,7 +48,7 @@ const uspFallback = [
 
 const storyFallback = {
   title: "Designed in Surat, loved across India",
-  description: "We travel across handloom clusters, collaborate with weavers, and finish each saree with couture level detailing. Every edit mirrors the premium Sudathi experience but is crafted only for saree loyalists.",
+  description: "We travel across handloom clusters, collaborate with weavers, and finish each saree with couture level detailing. Every edit mirrors the premium boutique experience but is crafted only for saree loyalists.",
   ctaLabel: "Shop handcrafted edits",
   ctaLink: "/products",
   meta: {
@@ -58,12 +58,6 @@ const storyFallback = {
       { value: "4.8/5", label: "Shopper rating" }
     ]
   }
-};
-
-const testimonialFallback = {
-  quote: "The fabric, the stitch, the way it drapes, everything feels couture. The styling notes that shipped with my order made the experience luxe.",
-  author: "Avni Patel",
-  role: "Ahmedabad, bride to be"
 };
 
 const formatPrice = (value) =>
@@ -86,38 +80,46 @@ const resolveImage = (item) => {
   return `${ASSET_BASE}${raw}`;
 };
 
-const HeroBanner = ({ slides = heroFallbacks }) => {
-  const displaySlides = (slides?.length ? slides : heroFallbacks).map((slide, index) => {
-    const fallback = heroFallbacks[index % heroFallbacks.length] || heroFallbacks[0];
-    const coverSource = slide.heroImage || slide.image;
-    return {
-      ...slide,
-      heroImage: resolveAsset(
-        coverSource,
-        fallback?.heroImage || fallback?.image || heroFallbacks[0].image
-      )
-    };
-  });
+const HeroBanner = ({ slides = [] }) => {
+  const normalizedSlides =
+    slides
+      ?.map((slide) => {
+        const source =
+          slide?.heroImage ||
+          slide?.image ||
+          slide?.mobileImage ||
+          slide?.desktopImage ||
+          slide?.cover ||
+          slide?.banner ||
+          slide?.meta?.image ||
+          slide?.meta?.cover ||
+          (Array.isArray(slide?.images) ? slide.images[0] : null);
+        const coverSource = typeof source === "string" ? source.trim() : source;
+        if (!coverSource) return null;
+        return {
+          ...slide,
+          heroImage: resolveAsset(coverSource, coverSource)
+        };
+      })
+      .filter(Boolean) || [];
+
+  if (!normalizedSlides.length) return null;
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     setActiveIndex(0);
-  }, [displaySlides.length]);
+  }, [normalizedSlides.length]);
 
   useEffect(() => {
-    if (!displaySlides.length) return;
+    if (!normalizedSlides.length) return;
     const ticker = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % displaySlides.length);
+      setActiveIndex((prev) => (prev + 1) % normalizedSlides.length);
     }, 3000);
     return () => clearInterval(ticker);
-  }, [displaySlides.length]);
+  }, [normalizedSlides.length]);
 
-  if (!displaySlides.length) return null;
-  const active = displaySlides[activeIndex];
-  const heroImage =
-    active?.heroImage ||
-    resolveAsset(active?.image, heroFallbacks[activeIndex % heroFallbacks.length]?.image) ||
-    heroFallbacks[0].image;
+  const active = normalizedSlides[activeIndex];
+  const heroImage = active?.heroImage;
   const headingCopy = active?.title || active?.description || active?.subtitle;
   const supportingCopy = active?.title
     ? active?.description || active?.subtitle
@@ -131,8 +133,8 @@ const HeroBanner = ({ slides = heroFallbacks }) => {
   return (
     <section className="bg-[var(--surface-muted)] py-10">
       <div className="max-w-6xl mx-auto px-4 lg:px-0">
-        <div className="relative rounded-[40px] overflow-hidden h-[460px] shadow-2xl">
-          {displaySlides.map((slide, index) => {
+        <div className="relative rounded-[40px] overflow-hidden aspect-[16/9] min-h-[420px] shadow-2xl">
+          {normalizedSlides.map((slide, index) => {
             const cover = slide.heroImage;
             return (
               <div
@@ -144,7 +146,7 @@ const HeroBanner = ({ slides = heroFallbacks }) => {
                 <img
                   src={cover}
                   alt={slide.title || "Hero slide"}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover object-top bg-[var(--surface)]"
                   loading={index === activeIndex ? "eager" : "lazy"}
                   decoding="async"
                   fetchpriority={index === activeIndex ? "high" : "auto"}
@@ -192,35 +194,6 @@ const HeroBanner = ({ slides = heroFallbacks }) => {
             </div>
           )}
 
-          <div className="relative z-10 flex flex-wrap gap-3 px-8 pb-6">
-            {displaySlides.map((slide, index) => (
-              <button
-                key={slide._id || slide.title || index}
-                onClick={() => setActiveIndex(index)}
-                className={`flex items-center gap-3 rounded-full border px-4 py-2 text-xs uppercase tracking-[0.3em] transition-all ${
-                  index === activeIndex
-                    ? "bg-white text-gray-900 border-white"
-                    : "bg-white/10 text-white/70 border-white/40"
-                }`}
-              >
-                {slide.heroImage || slide.image ? (
-                  <span
-                    className="w-8 h-8 rounded-full overflow-hidden bg-white/10 border border-white/30"
-                    aria-hidden="true"
-                  >
-                    <img
-                      src={slide.heroImage || slide.image}
-                      alt=""
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </span>
-                ) : null}
-                {slide.badge || slide.tag || "Slide"}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
     </section>
@@ -266,8 +239,11 @@ const USPStrip = ({ items = uspFallback }) => {
 
 const CategoryShowcase = ({ cards = [] }) => {
   const navigate = useNavigate();
+  const [shuffleKey, setShuffleKey] = useState(() => Date.now());
 
-  if (!cards.length) return null;
+  useEffect(() => {
+    setShuffleKey(Date.now());
+  }, [cards?.length]);
 
   const buildLink = (card) => {
     const params = new URLSearchParams();
@@ -280,15 +256,31 @@ const CategoryShowcase = ({ cards = [] }) => {
     return search ? `/products?${search}` : card?.ctaLink || "/products";
   };
 
+  const displayCards = useMemo(() => {
+    const list = Array.isArray(cards) ? [...cards] : [];
+    for (let i = list.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [list[i], list[j]] = [list[j], list[i]];
+    }
+    return list.slice(0, 4);
+  }, [cards, shuffleKey]);
+
+  if (!displayCards.length) return null;
+
   return (
-    <section className="py-12 px-4">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="text-center space-y-2">
-          <p className="text-xs uppercase tracking-[0.4em] text-gray-400">Shop by mood</p>
-          <h2 className="text-3xl font-semibold text-gray-900">Featured edits</h2>
+    <section className="py-10 px-4">
+      <div className="max-w-6xl mx-auto space-y-5">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-[0.4em] text-gray-400">Shop by mood</p>
+            <h2 className="text-3xl font-semibold text-gray-900">Featured edits</h2>
+          </div>
+          <Link to="/products" className="text-sm font-semibold text-[var(--primary)]">
+            View all products
+          </Link>
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {cards.map((card) => {
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+          {displayCards.map((card) => {
             const cover = resolveAsset(
               card.image,
               "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80"
@@ -305,11 +297,11 @@ const CategoryShowcase = ({ cards = [] }) => {
                   if (linkTarget) navigate(linkTarget);
                 }}
               >
-                <div className="relative h-56">
+                <div className="relative h-56 bg-[#fdf9f5] flex items-center justify-center">
                   <img
                     src={cover}
                     alt={card.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                     loading="lazy"
                     decoding="async"
                   />
@@ -323,17 +315,7 @@ const CategoryShowcase = ({ cards = [] }) => {
                 <div className="p-4 space-y-2">
                   <h3 className="text-lg font-semibold text-gray-900">{card.title}</h3>
                   <p className="text-sm text-gray-500">{card.subtitle || card.description}</p>
-
-                  {linkTarget ? (
-                    <Link
-                      to={linkTarget}
-                      className="text-sm text-[var(--primary)] font-semibold inline-flex items-center"
-                    >
-                      {card.ctaLabel || "Shop edit"} &gt;
-                    </Link>
-                  ) : (
-                    <p className="text-xs text-gray-400">Add products to enable this link.</p>
-                  )}
+                  {!linkTarget && <p className="text-xs text-gray-400">Add products to enable this link.</p>}
                 </div>
               </div>
             );
@@ -389,7 +371,21 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
         </div>
 
         {heroImage && (
-          <div className="relative rounded-[40px] overflow-hidden min-h-[320px] shadow-xl">
+          <div
+            className={`relative rounded-[40px] overflow-hidden min-h-[320px] shadow-xl ${
+              railLink ? "cursor-pointer" : ""
+            }`}
+            onClick={() => railLink && navigate(railLink)}
+            role={railLink ? "button" : undefined}
+            tabIndex={railLink ? 0 : undefined}
+            onKeyDown={(e) => {
+              if (!railLink) return;
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                navigate(railLink);
+              }
+            }}
+          >
             <img
               src={heroImage}
               alt={collection?.title}
@@ -399,18 +395,10 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-transparent text-white p-8 flex flex-col justify-center max-w-lg space-y-4">
               <p className="text-xs uppercase tracking-[0.5em] text-[var(--accent)] opacity-90">
-                {collection?.tag || "Sudathi pick"}
+                        {collection?.tag || "Editor pick"}
               </p>
               <h3 className="text-3xl font-semibold">{collection?.title}</h3>
               {description && <p className="text-sm text-white/80">{description}</p>}
-              {collection?.ctaLabel && (
-          <Link
-            to={railLink}
-            className="inline-flex w-max bg-white text-gray-900 px-6 py-3 rounded-full text-sm font-semibold shadow"
-          >
-            {collection.ctaLabel}
-          </Link>
-              )}
             </div>
           </div>
         )}
@@ -430,7 +418,7 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
               {displayedProducts.map((product) => {
                 const primaryPrice = product.discountPrice || product.price;
                 const discountPercent =
@@ -448,11 +436,14 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
                     className="bg-white rounded-[28px] border border-gray-100 shadow-sm hover:-translate-y-1 transition"
                     onClick={() => navigate(`/product/${product._id}`)}
                   >
-                    <div className="relative h-64 rounded-t-[28px] overflow-hidden">
+                    <div
+                      className="relative rounded-t-[28px] overflow-hidden bg-[#fdf9f5] flex items-center justify-center"
+                      style={{ aspectRatio: "3 / 4", minHeight: 220 }}
+                    >
                       <img
                         src={resolveImage(product)}
                         alt={product.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                         loading="lazy"
                         decoding="async"
                       />
@@ -513,7 +504,7 @@ const StorySection = ({ story = storyFallback }) => {
   return (
     <section className="bg-[var(--surface-muted)] py-14 px-4">
       <div className="max-w-5xl mx-auto text-center space-y-4">
-        <p className="text-xs uppercase tracking-[0.4em] text-gray-500">Sudathi story</p>
+        <p className="text-xs uppercase tracking-[0.4em] text-gray-500">Brand story</p>
         <h3 className="text-3xl font-semibold text-gray-900">{story.title}</h3>
         <p className="text-gray-600">{story.description}</p>
         {story.ctaLabel && (
@@ -536,7 +527,7 @@ const StorySection = ({ story = storyFallback }) => {
   );
 };
 
-const TestimonialStrip = ({ testimonials = [testimonialFallback], title = "Customer reviews" }) => {
+const TestimonialStrip = ({ testimonials = [], title = "Customer reviews" }) => {
   if (!testimonials || testimonials.length === 0) return null;
   const [index, setIndex] = useState(0);
 
@@ -551,7 +542,7 @@ const TestimonialStrip = ({ testimonials = [testimonialFallback], title = "Custo
     return () => clearInterval(timer);
   }, [testimonials.length]);
 
-  const current = testimonials[index] || testimonialFallback;
+  const current = testimonials[index];
   return (
     <section className="bg-white py-16 px-4">
       <div className="max-w-4xl mx-auto text-center space-y-6">
@@ -561,7 +552,7 @@ const TestimonialStrip = ({ testimonials = [testimonialFallback], title = "Custo
             <span className="flex items-center gap-1 text-yellow-500">
               {"★★★★★".slice(0, Math.round(current.rating || 5))}
             </span>
-            <span>{current.rating || "4.9"} ★</span>
+            {current.rating && <span>{current.rating} ★</span>}
             {current.verified && (
               <span className="flex items-center gap-1 text-emerald-600 text-xs border border-emerald-200 px-2 py-1 rounded-full">
                 ✔ Verified
@@ -631,7 +622,7 @@ const SupportFooter = () => (
       </div>
       <div>
         <p className="text-xs uppercase tracking-[0.4em] text-[var(--accent)] opacity-90">Get in touch</p>
-        <h3 className="text-2xl font-semibold mt-2">Sudathi concierge</h3>
+        <h3 className="text-2xl font-semibold mt-2">Styling concierge</h3>
         <p className="mt-4 text-sm text-white/80">Working hours: 10:00 AM - 6:30 PM (Mon - Sat)</p>
         <p className="mt-2 text-sm text-white/80">
           WhatsApp: <a className="font-semibold underline" href="https://wa.me/919999838768" target="_blank" rel="noreferrer">+91 99998 38768</a>
@@ -657,7 +648,7 @@ export default function Home() {
 
   useEffect(() => {
     setPageMeta({
-      title: "Mrigmaya Saree | Handcrafted drapes and edits",
+      title: "Mrigmaya | Handcrafted drapes and edits",
       description:
         "Discover couture calm sarees, heirloom Banarasis, and hand-finished silhouettes crafted in Surat and delivered pan-India."
     });
@@ -765,23 +756,163 @@ export default function Home() {
   const categoryCards = sectionsByGroup.category || [];
   const storyBlocks = sectionsByGroup.story || [];
   const testimonialBlocks = sectionsByGroup.testimonial || [];
-  const heroSlidesToShow = homeLoading ? [] : heroSlides;
+  const heroSlidesToShow = homeLoading
+    ? []
+    : heroSlides.filter((slide) => {
+        const raw =
+          slide?.heroImage ||
+          slide?.image ||
+          slide?.mobileImage ||
+          slide?.desktopImage ||
+          slide?.cover ||
+          slide?.banner ||
+          slide?.meta?.image ||
+          slide?.meta?.cover ||
+          (Array.isArray(slide?.images) ? slide.images[0] : null);
+        const hasImage = typeof raw === "string" ? raw.trim() : Boolean(raw);
+        return slide?.active !== false && hasImage;
+      });
+  const trendingCollection = useMemo(() => featuredCollections[0] || null, [featuredCollections]);
+  const signatureCollection = useMemo(
+    () =>
+      featuredCollections.find(
+        (c) =>
+          (c.slug || "").toLowerCase().includes("signature") ||
+          /signature/i.test(c.title || "")
+      ) || featuredCollections[1] || null,
+    [featuredCollections]
+  );
+  const usedCollectionIds = useMemo(
+    () => [trendingCollection?._id, signatureCollection?._id].filter(Boolean),
+    [trendingCollection, signatureCollection]
+  );
+  const remainingCollections = useMemo(
+    () => featuredCollections.filter((c) => !usedCollectionIds.includes(c._id)),
+    [featuredCollections, usedCollectionIds]
+  );
+
+  const getCollectionProducts = (collection) => {
+    if (!collection) return [];
+    if (Array.isArray(collection.products) && collection.products.length) {
+      return collection.products;
+    }
+    if (collection._id && products.length) {
+      return products.filter((p) =>
+        (p.collections || []).some((col) => (col._id || col) === collection._id)
+      );
+    }
+    return [];
+  };
 
   return (
     <div className="bg-[var(--bg)] text-[var(--ink)]">
-      <HeroBanner slides={heroSlidesToShow} />
+      {heroSlidesToShow.length > 0 && <HeroBanner slides={heroSlidesToShow} />}
       <USPStrip items={uspItems.length ? uspItems : uspFallback} />
       {homeError && (
         <div className="max-w-6xl mx-auto px-4 text-sm text-amber-600">{homeError}</div>
       )}
       <CategoryShowcase cards={categoryCards} products={products} />
-      <div className="max-w-6xl mx-auto px-4 flex justify-end mt-2">
-        <Link to="/products" className="text-sm text-[var(--primary)] font-semibold">
-          View all products
-        </Link>
-      </div>
-      {featuredCollections.length > 0 &&
-        featuredCollections.map((collection) => (
+      {trendingCollection && (
+        <section className="py-8 px-4">
+          <div className="max-w-6xl mx-auto space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-[0.35em] text-gray-400">Trending collection</p>
+                <h3 className="text-2xl font-semibold text-gray-900">{trendingCollection.title}</h3>
+              </div>
+              <Link
+                to={`/products?collectionSlug=${trendingCollection.slug || trendingCollection._id || ""}`}
+                className="text-sm font-semibold text-[var(--primary)]"
+              >
+                View all
+              </Link>
+            </div>
+            {trendingCollection.heroImage || trendingCollection.image ? (
+              <Link
+                to={`/products?collectionSlug=${trendingCollection.slug || trendingCollection._id || ""}`}
+                className="block overflow-hidden rounded-[28px] shadow-[0_16px_40px_rgba(0,0,0,0.16)]"
+              >
+                <img
+                  src={resolveAsset(trendingCollection.heroImage || trendingCollection.image)}
+                  alt={trendingCollection.title}
+                  className="w-full h-56 md:h-72 object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </Link>
+            ) : null}
+            <div className="mobile-rail">
+              {getCollectionProducts(trendingCollection)
+                .slice(0, 8)
+                .map((item) => (
+                  <Link
+                    to={`/product/${item._id || item.id || ""}`}
+                    key={item._id}
+                    className="mobile-rail__card"
+                  >
+                    <div className="mobile-rail__img">
+                      <img src={resolveImage(item)} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+                    </div>
+                    <p className="mobile-rail__title">{item.name}</p>
+                    <p className="mobile-rail__price">{formatPrice(item.discountPrice || item.price)}</p>
+                  </Link>
+                ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {signatureCollection && (
+        <section className="py-6 px-4">
+          <div className="max-w-6xl mx-auto space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-[0.35em] text-gray-400">Signature sarees</p>
+                <h3 className="text-2xl font-semibold text-gray-900">{signatureCollection.title}</h3>
+              </div>
+              <Link
+                to={`/products?collectionSlug=${signatureCollection.slug || signatureCollection._id || ""}`}
+                className="text-sm font-semibold text-[var(--primary)]"
+              >
+                View all
+              </Link>
+            </div>
+            {signatureCollection.heroImage || signatureCollection.image ? (
+              <Link
+                to={`/products?collectionSlug=${signatureCollection.slug || signatureCollection._id || ""}`}
+                className="block overflow-hidden rounded-[24px] shadow-[0_12px_34px_rgba(0,0,0,0.14)]"
+              >
+                <img
+                  src={resolveAsset(signatureCollection.heroImage || signatureCollection.image)}
+                  alt={signatureCollection.title}
+                  className="w-full h-48 md:h-64 object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </Link>
+            ) : null}
+            <div className="mobile-rail">
+              {getCollectionProducts(signatureCollection)
+                .slice(0, 6)
+                .map((item) => (
+                  <Link
+                    to={`/product/${item._id || item.id || ""}`}
+                    key={item._id}
+                    className="mobile-rail__card mobile-rail__card--compact"
+                  >
+                    <div className="mobile-rail__img">
+                      <img src={resolveImage(item)} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+                    </div>
+                    <p className="mobile-rail__title">{item.name}</p>
+                  </Link>
+                ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {remainingCollections.length > 0 &&
+        remainingCollections.map((collection) => (
           <ProductRail
             key={collection._id}
             collection={collection}
@@ -792,10 +923,7 @@ export default function Home() {
           />
         ))}
       <StorySection story={storyBlocks[0] || storyFallback} />
-      <TestimonialStrip
-        testimonials={testimonialBlocks.length ? testimonialBlocks : [testimonialFallback]}
-        title="Customer reviews"
-      />
+      <TestimonialStrip testimonials={testimonialBlocks} title="Customer reviews" />
       <SupportFooter />
     </div>
   );

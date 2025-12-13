@@ -12,6 +12,7 @@ import { connectDB } from "./config/db.js";
 import { ensureDefaultCollections } from "./utils/seedCollections.js";
 import { ensureDefaultCategories } from "./utils/seedCategories.js";
 import { migrateCustomProducts } from "./utils/migrateCustomProducts.js";
+import { ensureAdminUser } from "./utils/ensureAdminUser.js";
 
 // Routes
 import authRoutes from "./routes/auth.js";
@@ -74,6 +75,7 @@ app.use("/api/coupons", couponRoutes);
 
 const startServer = async () => {
   await connectDB();
+  await ensureAdminUser();
   await ensureDefaultCollections();
   await ensureDefaultCategories();
   await migrateCustomProducts();

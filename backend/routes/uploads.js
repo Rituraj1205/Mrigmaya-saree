@@ -6,9 +6,17 @@ import { auth, adminOnly } from "../middleware/auth.js";
 const router = express.Router();
 const upload = multer({
   dest: "uploads/",
-  limits: { fileSize: 8 * 1024 * 1024 }, // 8 MB max
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB max
   fileFilter: (req, file, cb) => {
-    const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    const allowed = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+      "video/mp4",
+      "video/webm",
+      "video/ogg"
+    ];
     if (allowed.includes(file.mimetype)) cb(null, true);
     else cb(new Error("Invalid file type"));
   }
@@ -25,7 +33,9 @@ router.use((err, req, res, next) => {
     return res.status(400).json({ msg: err.message });
   }
   if (err && err.message === "Invalid file type") {
-    return res.status(400).json({ msg: "Only images (jpg, png, webp, gif) up to 8MB are allowed" });
+    return res
+      .status(400)
+      .json({ msg: "Only images (jpg, png, webp, gif) or videos (mp4, webm, ogg) up to 25MB are allowed" });
   }
   return next(err);
 });

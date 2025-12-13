@@ -14,6 +14,7 @@ const sanitizePayload = (body) => {
     badge: body.badge,
     image: body.image,
     mobileImage: body.mobileImage,
+    video: body.video,
     ctaLabel: body.ctaLabel,
     ctaLink: body.ctaLink,
     secondaryCtaLabel: body.secondaryCtaLabel,

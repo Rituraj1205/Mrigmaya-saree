@@ -133,10 +133,42 @@ router.delete("/:id", auth, adminOnly, async (req, res) => {
 });
 
 router.get("/", async (req, res) => {
-  const list = await Product.find()
-    .populate("collections", "title slug")
-    .populate("categoryRef", "name slug");
-  res.json(list);
+  const includeInactive = req.query.includeInactive === "true";
+  const [products, activeCategories] = await Promise.all([
+    Product.find()
+      .populate("collections", "title slug")
+      .populate("categoryRef", "name slug"),
+    includeInactive ? Promise.resolve([]) : Category.find({ active: true }).select("name slug")
+  ]);
+
+  if (includeInactive) {
+    return res.json(products);
+  }
+
+  if (!activeCategories.length) {
+    return res.json(products);
+  }
+
+  const activeIds = new Set(activeCategories.map((cat) => cat._id.toString()));
+  const activeNames = new Set(
+    activeCategories
+      .flatMap((cat) => [cat.name, cat.slug])
+      .filter(Boolean)
+      .map((value) => value.toLowerCase())
+  );
+
+  const filtered = products.filter((product) => {
+    const refId = product.categoryRef?._id?.toString?.() || product.categoryRef?.toString?.();
+    if (refId && activeIds.has(refId)) return true;
+
+    const categoryLabel = (product.category || "").trim().toLowerCase();
+    if (categoryLabel && activeNames.has(categoryLabel)) return true;
+
+    // Allow uncategorized products to continue showing
+    return !product.category && !product.categoryRef;
+  });
+
+  res.json(filtered);
 });
 
 router.get("/:id", async (req, res) => {

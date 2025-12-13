@@ -24,6 +24,7 @@ const homeSectionSchema = new mongoose.Schema(
     badge: String,
     image: String,
     mobileImage: String,
+    video: String,
     ctaLabel: String,
     ctaLink: String,
     secondaryCtaLabel: String,
