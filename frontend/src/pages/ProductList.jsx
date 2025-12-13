@@ -66,6 +66,9 @@ export default function ProductList() {
   const [collectionSlugParam, setCollectionSlugParam] = useState("");
   const [moodIdParam, setMoodIdParam] = useState("");
   const [moodsLoaded, setMoodsLoaded] = useState(false);
+  const [basePriceCap, setBasePriceCap] = useState(4000);
+  const [showCategorySheet, setShowCategorySheet] = useState(false);
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
   const activeMoodId = selectedMoodId || moodIdParam;
 
   useEffect(() => {
@@ -74,9 +77,9 @@ export default function ProductList() {
     if (category && category !== "All Sarees") filters.push(category);
     const titleSuffix = filters.length ? ` | ${filters.join(" · ")}` : "";
     setPageMeta({
-      title: `Mrigmaya Saree | Shop sarees${titleSuffix}`,
+      title: `Mrigmaya | Shop sarees${titleSuffix}`,
       description:
-        "Explore Mrigmaya Saree edits: handcrafted silks, chiffons, Banarasis, and contemporary drapes with concierge support and fast pan-India delivery."
+        "Explore Mrigmaya edits: handcrafted silks, chiffons, Banarasis, and contemporary drapes with concierge support and fast pan-India delivery."
     });
   }, [collectionSlugParam, category]);
 
@@ -116,6 +119,7 @@ export default function ProductList() {
       return value > max ? value : max;
     }, 0);
     const safeMax = Math.max(highest, 6000);
+    setBasePriceCap(safeMax);
     setMaxPrice(safeMax);
     setPriceCap(safeMax);
   }, [products]);
@@ -189,25 +193,32 @@ export default function ProductList() {
   }, [slug, collections, collectionSlugParam]);
 
   useEffect(() => {
-    const derivedCategories = moodFilters.length
-      ? moodFilters.map((card) => card.title).filter(Boolean)
-      : Array.from(
-          new Set((products || []).map((item) => (item.category || "").trim()).filter(Boolean))
-        );
-    const categoriesWithAll = ["All Sarees", ...derivedCategories.filter(Boolean)];
+    const moodTitles = moodFilters.map((card) => card.title).filter(Boolean);
+    const productCategories = (products || [])
+      .map((item) => (item.category || "").trim())
+      .filter(Boolean);
+    const collectionTitles = (collections || [])
+      .map((col) => col.title)
+      .filter(Boolean);
+
+    const derivedCategories = Array.from(
+      new Set([...moodTitles, ...productCategories, ...collectionTitles].filter(Boolean))
+    );
+
+    const categoriesWithAll = ["All Sarees", ...derivedCategories];
     setCategoryFilters(categoriesWithAll);
     if (categoriesWithAll.length === 1 || (category !== "All Sarees" && !categoriesWithAll.includes(category))) {
       setCategory("All Sarees");
       setSelectedMoodId("");
     }
-  }, [products, moodFilters, category]);
+  }, [products, moodFilters, collections, category]);
 
   const filteredProducts = useMemo(() => {
     let data = [...products];
     const moodLocked = Boolean(activeMoodId);
 
     if (selectedIds.length) {
-      data = data.filter((item) => selectedIds.includes(item._id));
+      data = data.filter((item) => selectedIds.includes(item._id) || selectedIds.includes(item.productId));
     }
 
     if (activeMoodId) {
@@ -216,7 +227,7 @@ export default function ProductList() {
         const moodProductIds = mood.meta?.products || mood.productIds || [];
         const moodSlug = mood.slug;
         if (moodProductIds.length) {
-          data = data.filter((item) => moodProductIds.includes(item._id));
+          data = data.filter((item) => moodProductIds.includes(item._id) || moodProductIds.includes(item.productId));
         } else if (moodSlug) {
           data = data.filter((item) =>
             (item.collections || []).some(
@@ -233,7 +244,7 @@ export default function ProductList() {
       }
     }
 
-    if (category && category !== "All Sarees") {
+    if (!moodLocked && category && category !== "All Sarees") {
       data = data.filter((item) =>
         (item.category || "").toLowerCase().includes(category.toLowerCase())
       );
@@ -300,7 +311,7 @@ export default function ProductList() {
     setCategory("All Sarees");
     setSelectedMoodId("");
     setCollectionFilter("");
-    setPriceCap(4000);
+    setPriceCap(basePriceCap);
     setSortBy("featured");
     setSearch("");
   };
@@ -308,77 +319,6 @@ export default function ProductList() {
   return (
     <div className="collection-page">
       <section className="collection-body">
-        <aside className="filter-panel">
-          <div className="filter-card">
-            <p className="filter-label">Category</p>
-            <div className="filter-pills">
-              {categoryFilters.map((item) => (
-                <button
-                  key={item}
-                  className={item === category ? "pill active" : "pill"}
-                  onClick={() => {
-                    setCategory(item);
-                    const matchedMood = moodFilters.find(
-                      (card) => card.title?.toLowerCase() === item.toLowerCase()
-                    );
-                    setSelectedMoodId(matchedMood?._id || "");
-                  }}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="filter-card">
-            <p className="filter-label">Collections</p>
-            <div className="filter-pills">
-              <button
-                className={!collectionFilter ? "pill active" : "pill"}
-                onClick={() => setCollectionFilter("")}
-              >
-                All
-              </button>
-              {collections.map((collection) => (
-                <button
-                  key={collection._id}
-                  className={collectionFilter === collection._id ? "pill active" : "pill"}
-                  onClick={() =>
-                    setCollectionFilter(
-                      collectionFilter === collection._id ? "" : collection._id
-                    )
-                  }
-                >
-                  {collection.title}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="filter-card">
-            <p className="filter-label">Budget cap</p>
-            <input
-              type="range"
-              min="0"
-              max={Math.max(1000, maxPrice)}
-              step="100"
-              value={activeMoodId ? Math.max(1000, maxPrice) : priceCap}
-              onChange={(e) => {
-                if (activeMoodId) return;
-                setPriceCap(Number(e.target.value));
-              }}
-            />
-            <div className="price-display">
-              {activeMoodId ? "Budget cap disabled for this edit" : `Up to ${formatPrice(priceCap)}`}
-            </div>
-          </div>
-
-          <div className="filter-footer">
-            <button onClick={clearFilters}>Reset filters</button>
-            <p>Need help styling? WhatsApp our saree expert.</p>
-          </div>
-        </aside>
-
         <div className="product-area">
           <div className="product-toolbar">
             <div className="toolbar-copy">
@@ -396,6 +336,14 @@ export default function ProductList() {
               </div>
             </div>
             <div className="toolbar-actions">
+              <div className="quick-filters">
+                <button className="pill pill--ghost" onClick={() => setShowCategorySheet(true)}>
+                  Category
+                </button>
+                <button className="pill pill--ghost" onClick={() => setShowFilterSheet(true)}>
+                  Filters
+                </button>
+              </div>
               <div className="search-shell">
                 <span className="search-icon">Search</span>
                 <input
@@ -405,30 +353,16 @@ export default function ProductList() {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-
-              <div className="select-shell">
-                <span className="select-label">Sort</span>
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                  {sortOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
             </div>
           </div>
 
           {error && <p className="error">{error}</p>}
 
-          <div
-            className={`tag-strip ${
-              collectionFilter || category !== "All Sarees" || priceCap !== 4000 || search.trim()
-                ? "tag-strip--sticky"
-                : ""
-            }`}
-          >
-            {(collectionFilter || (category && category !== "All Sarees") || priceCap !== 4000 || search.trim()) && (
+          <div className="tag-strip">
+            {(collectionFilter ||
+              (category && category !== "All Sarees") ||
+              (!activeMoodId && priceCap !== basePriceCap) ||
+              search.trim()) && (
               <>
                 {category && category !== "All Sarees" && (
                   <span className="tag-chip" onClick={() => setCategory("All Sarees")}>
@@ -440,8 +374,8 @@ export default function ProductList() {
                     {collections.find((c) => c._id === collectionFilter)?.title || "Collection"} ×
                   </span>
                 )}
-                {priceCap !== 4000 && !activeMoodId && (
-                  <span className="tag-chip" onClick={() => setPriceCap(4000)}>
+                {!activeMoodId && priceCap !== basePriceCap && (
+                  <span className="tag-chip" onClick={() => setPriceCap(basePriceCap)}>
                     Cap {formatPrice(priceCap)} ×
                   </span>
                 )}
@@ -551,6 +485,152 @@ export default function ProductList() {
               })}
           </div>
         </div>
+
+        {showCategorySheet && (
+          <div className="sheet-backdrop" onClick={() => setShowCategorySheet(false)}>
+            <div
+              className="filter-panel sheet"
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <div className="sheet-header">
+                <h3>Category</h3>
+                <button className="close-sheet" onClick={() => setShowCategorySheet(false)}>
+                  Close
+                </button>
+              </div>
+              <div className="filter-card">
+                <p className="filter-label">Category</p>
+                <div className="filter-pills">
+                  {categoryFilters.map((item) => (
+                    <button
+                      key={item}
+                      className={item === category ? "pill active" : "pill"}
+                      onClick={() => {
+                        setCategory(item);
+                        const matchedMood = moodFilters.find(
+                          (card) => card.title?.toLowerCase() === item.toLowerCase()
+                        );
+                        setSelectedMoodId(matchedMood?._id || "");
+                        setShowCategorySheet(false);
+                      }}
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="filter-card">
+                <p className="filter-label">Sort</p>
+                <div className="select-shell select-shell--sheet">
+                  <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                    {sortOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showFilterSheet && (
+          <div className="sheet-backdrop" onClick={() => setShowFilterSheet(false)}>
+            <div
+              className="filter-panel sheet"
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <div className="sheet-header">
+                <h3>Filters</h3>
+                <button className="close-sheet" onClick={() => setShowFilterSheet(false)}>
+                  Close
+                </button>
+              </div>
+
+              <div className="filter-card">
+                <p className="filter-label">Category</p>
+                <div className="filter-pills">
+                  {categoryFilters.map((item) => (
+                    <button
+                      key={item}
+                      className={item === category ? "pill active" : "pill"}
+                      onClick={() => {
+                        setCategory(item);
+                        const matchedMood = moodFilters.find(
+                          (card) => card.title?.toLowerCase() === item.toLowerCase()
+                        );
+                        setSelectedMoodId(matchedMood?._id || "");
+                      }}
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="filter-card">
+                <p className="filter-label">Collections</p>
+                <div className="filter-pills">
+                  <button
+                    className={!collectionFilter ? "pill active" : "pill"}
+                    onClick={() => setCollectionFilter("")}
+                  >
+                    All
+                  </button>
+                  {collections.map((collection) => (
+                    <button
+                      key={collection._id}
+                      className={collectionFilter === collection._id ? "pill active" : "pill"}
+                      onClick={() =>
+                        setCollectionFilter(collectionFilter === collection._id ? "" : collection._id)
+                      }
+                    >
+                      {collection.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="filter-card">
+                <p className="filter-label">Budget cap</p>
+                <input
+                  type="range"
+                  min="0"
+                  max={Math.max(1000, maxPrice)}
+                  step="100"
+                  value={activeMoodId ? Math.max(1000, maxPrice) : priceCap}
+                  onChange={(e) => {
+                    if (activeMoodId) return;
+                    setPriceCap(Number(e.target.value));
+                  }}
+                />
+                <div className="price-display">
+                  {activeMoodId
+                    ? "Budget cap disabled for this edit"
+                    : `Up to ${formatPrice(priceCap)}`}
+                </div>
+              </div>
+
+              <div className="filter-footer">
+                <button
+                  onClick={() => {
+                    clearFilters();
+                    setShowFilterSheet(false);
+                  }}
+                >
+                  Reset filters
+                </button>
+                <p>Need help styling? WhatsApp our saree expert.</p>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );

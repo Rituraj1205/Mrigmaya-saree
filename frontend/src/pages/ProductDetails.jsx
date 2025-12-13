@@ -45,6 +45,9 @@ export default function ProductDetails() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [zoomOpen, setZoomOpen] = useState(false);
+  const [zoomScale, setZoomScale] = useState(1.2);
+  const [zoomSrc, setZoomSrc] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -88,9 +91,9 @@ export default function ProductDetails() {
     const desc =
       product.description ||
       product.subtitle ||
-      "Discover handcrafted sarees and curated edits from Mrigmaya Saree.";
+      "Discover handcrafted sarees and curated edits from Mrigmaya.";
     setPageMeta({
-      title: `${lead} | Mrigmaya Saree`,
+      title: `${lead} | Mrigmaya`,
       description: desc,
       image: resolveImage(product)
     });
@@ -176,8 +179,8 @@ export default function ProductDetails() {
 
   const shareProduct = async () => {
     const url = typeof window !== "undefined" ? window.location.href : "";
-    const title = product?.name || "Mrigmaya Saree";
-    const text = `${title} | Mrigmaya Saree`;
+    const title = product?.name || "Mrigmaya";
+    const text = `${title} | Mrigmaya`;
 
     if (navigator.share) {
       try {
@@ -197,8 +200,9 @@ export default function ProductDetails() {
   };
 
   return (
-    <div className="bg-[#fefbfe] min-h-screen">
-      <div className="max-w-6xl mx-auto px-4 lg:px-0 py-10 space-y-12">
+    <>
+      <div className="bg-[#fefbfe] min-h-screen">
+        <div className="max-w-6xl mx-auto px-4 lg:px-0 py-10 space-y-12">
         <div className="grid lg:grid-cols-[1.1fr,0.9fr] gap-10 items-start">
           <div>
             <div className="relative rounded-3xl overflow-hidden bg-white shadow">
@@ -206,10 +210,15 @@ export default function ProductDetails() {
                 <img
                   src={activeImage}
                   alt={product.name}
-                  className="w-full h-[520px] object-cover"
+                  className="w-full h-[520px] object-cover cursor-zoom-in"
                   loading="eager"
                   fetchpriority="high"
                   decoding="async"
+                  onClick={() => {
+                    setZoomSrc(activeImage);
+                    setZoomScale(1.4);
+                    setZoomOpen(true);
+                  }}
                 />
               ) : (
                 <div className="w-full h-[520px] flex items-center justify-center text-gray-400">No image</div>
@@ -244,9 +253,14 @@ export default function ProductDetails() {
                     <img
                       src={image}
                       alt={product.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover cursor-zoom-in"
                       loading="lazy"
                       decoding="async"
+                      onClick={() => {
+                        setZoomSrc(image);
+                        setZoomScale(1.4);
+                        setZoomOpen(true);
+                      }}
                     />
                   </button>
                 ))}
@@ -414,14 +428,14 @@ export default function ProductDetails() {
                     className="bg-white border border-gray-100 rounded-2xl shadow hover:-translate-y-1 transition cursor-pointer"
                     onClick={() => navigate(`/product/${item._id}`)}
                   >
-                    <div className="relative h-56 rounded-t-2xl overflow-hidden">
-                <img
-                  src={resolveImage(item)}
-                  alt={item.name}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                  decoding="async"
-                />
+                    <div className="relative h-56 rounded-t-2xl overflow-hidden bg-white">
+                      <img
+                        src={resolveImage(item)}
+                        alt={item.name}
+                        className="w-full h-full object-contain"
+                        loading="lazy"
+                        decoding="async"
+                      />
                       {itemDiscount ? (
                         <span className="absolute top-3 left-3 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
                           -{itemDiscount}%
@@ -460,5 +474,76 @@ export default function ProductDetails() {
         </div>
       </div>
     </div>
+
+    {zoomOpen && (
+      <div
+        className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center px-4 py-6"
+        onClick={() => setZoomOpen(false)}
+      >
+        <div
+          className="bg-white/5 border border-white/15 shadow-2xl rounded-2xl max-w-6xl w-full max-h-[90vh] flex flex-col"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+            <div className="flex items-center gap-3 text-white/80 text-sm">
+              <span className="font-semibold">Zoom preview</span>
+              <span className="text-xs opacity-80">Click - / + or scroll to zoom</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                className="px-3 py-2 rounded-full bg-white/10 text-white hover:bg-white/20"
+                onClick={() => setZoomScale((z) => Math.max(1, Number((z - 0.2).toFixed(1))))}
+              >
+                −
+              </button>
+              <button
+                className="px-3 py-2 rounded-full bg-white/10 text-white hover:bg-white/20"
+                onClick={() => setZoomScale((z) => Math.min(4, Number((z + 0.2).toFixed(1))))}
+              >
+                +
+              </button>
+              <button
+                className="ml-2 px-3 py-2 rounded-full bg-white/15 text-white hover:bg-white/25"
+                onClick={() => {
+                  setZoomScale(1.4);
+                  setZoomOpen(false);
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+          <div
+            className="flex-1 overflow-auto px-4 py-4 bg-[#0b0a0a]/30"
+            onWheel={(e) => {
+              e.preventDefault();
+              const delta = e.deltaY < 0 ? 0.2 : -0.2;
+              setZoomScale((z) => {
+                const next = z + delta;
+                return Math.min(4, Math.max(1, Number(next.toFixed(1))));
+              });
+            }}
+          >
+            {zoomSrc ? (
+              <img
+                src={zoomSrc}
+                alt="Zoomed"
+                className="block mx-auto rounded-xl shadow-2xl"
+                style={{
+                  width: `${zoomScale * 100}%`,
+                  maxWidth: `${zoomScale * 100}%`,
+                  minWidth: "60%",
+                  transformOrigin: "center center"
+                }}
+                onDoubleClick={() => setZoomScale(1.4)}
+                loading="lazy"
+                decoding="async"
+              />
+            ) : null}
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

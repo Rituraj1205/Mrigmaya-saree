@@ -30,8 +30,8 @@ export default function CollectionShowcase() {
 
   useEffect(() => {
     setPageMeta({
-      title: `Mrigmaya Saree | Collection ${slug}`,
-      description: "Curated saree edits from Mrigmaya Saree with handcrafted silhouettes and concierge support."
+      title: `Mrigmaya | Collection ${slug}`,
+      description: "Curated saree edits from Mrigmaya with handcrafted silhouettes and concierge support."
     });
   }, [slug]);
 
@@ -57,7 +57,7 @@ export default function CollectionShowcase() {
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center bg-[#fefbfe] px-4">
-        <BrandLoader message="Curating the Mrigmaya Saree edit..." />
+        <BrandLoader message="Curating the Mrigmaya edit..." />
       </div>
     );
   }

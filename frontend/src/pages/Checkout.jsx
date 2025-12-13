@@ -154,7 +154,7 @@ export default function Checkout() {
       key: razorpayKey,
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency,
-      name: "Mrigmaya Saree",
+      name: "Mrigmaya",
       description: order?.items?.[0]?.product?.name || "Saree order",
       order_id: razorpayOrder.id,
       prefill: {

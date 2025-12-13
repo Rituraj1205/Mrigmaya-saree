@@ -12,6 +12,11 @@ const resolveAsset = (url) => {
   return `${ASSET_BASE}${url}`;
 };
 
+const isVideoLink = (url = "") => {
+  const normalized = url.split("?")[0].toLowerCase();
+  return /\.(mp4|webm|ogg)$/.test(normalized);
+};
+
 const emptyProduct = {
   name: "",
   description: "",
@@ -62,6 +67,7 @@ const orderStatusOptions = [
   const [collections, setCollections] = useState([]);
   const [categories, setCategories] = useState([]);
   const [productForm, setProductForm] = useState(emptyProduct);
+  const [productMoodIds, setProductMoodIds] = useState([]);
   const [productFiles, setProductFiles] = useState([]);
   const [productVideoUploading, setProductVideoUploading] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
@@ -148,6 +154,22 @@ const orderStatusOptions = [
     return true;
   };
 
+  const validateMediaFile = (file, maxMb = 20) => {
+    if (!file) return false;
+    const isImage = file.type?.startsWith("image/");
+    const isVideo = file.type?.startsWith("video/");
+    if (!isImage && !isVideo) {
+      toast.error("Upload an image or video");
+      return false;
+    }
+    const limit = maxMb * 1024 * 1024;
+    if (file.size > limit) {
+      toast.error(`File too large. Max ${maxMb}MB allowed.`);
+      return false;
+    }
+    return true;
+  };
+
   const shippingSummary = (order) => {
     const addr = order?.shippingAddress || {};
     const lines = [
@@ -190,7 +212,7 @@ const orderStatusOptions = [
 
   const fetchProducts = async () => {
     try {
-      const res = await axios.get("/products");
+      const res = await axios.get("/products?includeInactive=true");
       setProducts(res.data);
     } catch (err) {
       console.error(err);
@@ -372,8 +394,38 @@ const orderStatusOptions = [
     [homeSections]
   );
 
+  // Keep product mood selection in sync when editing.
+  useEffect(() => {
+    if (!editingProductId) {
+      setProductMoodIds([]);
+      return;
+    }
+    const product = products.find((p) => p._id === editingProductId);
+    if (!product) return;
+    const linked = moodCards
+      .filter((card) => {
+        const ids = card.meta?.products || card.productIds || [];
+        return ids.includes(product._id);
+      })
+      .map((card) => card._id);
+    setProductMoodIds(linked);
+  }, [editingProductId, products, moodCards]);
+
   const uploadHeroAsset = async (file) => {
     if (!validateImageFile(file)) return null;
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await axios.post("/uploads", formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data"
+      }
+    });
+    return res.data.url;
+  };
+
+  const uploadHeroMedia = async (file) => {
+    if (!validateMediaFile(file, 25)) return null;
     const formData = new FormData();
     formData.append("file", file);
     const res = await axios.post("/uploads", formData, {
@@ -400,12 +452,12 @@ const orderStatusOptions = [
     setEditingMoodId(null);
   };
 
-  const createHeroSlide = async (imageUrl, order) => {
+  const createHeroSlide = async (mediaPayload, order) => {
     await axios.post(
       "/home-sections",
       {
         group: "hero",
-        image: imageUrl,
+        ...mediaPayload,
         order,
         active: true
       },
@@ -571,36 +623,55 @@ const orderStatusOptions = [
 
   const handleMoodCustomAdd = async (cardId, item) => {
     const card = moodCards.find((c) => c._id === cardId);
-    // Create a real product so custom items behave like full products (detail page, cart).
+    // Quick-create a real product, then attach it to this mood card.
+    const gallery = Array.isArray(item.images) && item.images.length ? item.images : [item.image || ""];
+    const formData = new FormData();
+    formData.append("name", item.name || "Custom item");
+    formData.append("description", `Custom product for ${card?.title || "edit"}`);
+    formData.append("category", card?.title || "Custom");
+    formData.append("price", Number(item.mrp || item.price || 0));
+    const selling = Number(item.price || 0);
+    const mrp = Number(item.mrp || 0);
+    const hasDiscount = mrp > selling && selling > 0;
+    if (hasDiscount) {
+      formData.append("discountPrice", selling);
+      formData.append("price", mrp);
+    }
+    formData.append("stock", 50);
+    formData.append("images", gallery.filter(Boolean).join("\n"));
+
     let productId = item.productId;
     try {
-      const payload = {
-        name: item.name || "Custom item",
-        description: `Custom product for ${card?.title || "edit"}`,
-        category: card?.title || "Custom",
-        price: Number(item.mrp || item.price || 0),
-        discountPrice:
-          item.mrp && Number(item.mrp) > Number(item.price || item.mrp)
-            ? Number(item.price)
-            : undefined,
-        stock: 50,
-        images: Array.isArray(item.images) && item.images.length ? item.images : [item.image || ""]
-      };
-      const res = await axios.post("/products", payload, authConfig);
+      const res = await axios.post("/products", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data"
+        }
+      });
       productId = res.data?._id || productId;
+      toast.success("Product created & attached");
+      fetchProducts();
     } catch (err) {
       console.error("Custom product creation failed", err);
-      toast.error("Could not create product for this custom item");
+      toast.error("Could not create product for this item");
       return;
     }
-    const existing = card?.meta?.customProducts || [];
+
+    const existingProducts = card?.meta?.products || card?.productIds || [];
+    const existingDetails = card?.meta?.productsDetails || [];
+    const nextDetails = [
+      ...existingDetails.filter((p) => p?._id !== productId),
+      { _id: productId, name: item.name || "Custom item" }
+    ];
     try {
       await axios.put(
         `/home-sections/${cardId}`,
         {
           meta: {
             ...(card.meta || {}),
-            customProducts: [...existing, { ...item, productId }]
+            products: [...new Set([...existingProducts, productId])],
+            productsDetails: nextDetails,
+            customProducts: card?.meta?.customProducts || []
           }
         },
         authConfig
@@ -608,7 +679,7 @@ const orderStatusOptions = [
       fetchHomeSections();
     } catch (err) {
       console.error(err);
-      toast.error("Could not add product");
+      toast.error("Could not attach product to this card");
     }
   };
 
@@ -666,8 +737,13 @@ const orderStatusOptions = [
     try {
       let order = highestHeroOrder + 1;
       for (const file of Array.from(files)) {
-        const imageUrl = await uploadHeroAsset(file);
-        await createHeroSlide(imageUrl, order);
+        const mediaUrl = await uploadHeroMedia(file);
+        if (!mediaUrl) continue;
+        const payload =
+          file.type?.startsWith("video/") || isVideoLink(mediaUrl)
+            ? { video: mediaUrl }
+            : { image: mediaUrl };
+        await createHeroSlide(payload, order);
         order += 1;
       }
       toast.success("Slides added");
@@ -685,7 +761,9 @@ const orderStatusOptions = [
     if (!heroLinkInput.trim()) return;
     setHeroUploadBusy(true);
     try {
-      await createHeroSlide(heroLinkInput.trim(), highestHeroOrder + 1);
+      const link = heroLinkInput.trim();
+      const payload = isVideoLink(link) ? { video: link } : { image: link };
+      await createHeroSlide(payload, highestHeroOrder + 1);
       setHeroLinkInput("");
       toast.success("Slide added");
       logChange("Added hero slide via link");
@@ -778,6 +856,38 @@ const orderStatusOptions = [
     }
   };
 
+  const syncProductMoodLinks = async (productId, selectedMoodIds = []) => {
+    const ops = [];
+    moodCards.forEach((card) => {
+      const existing = card.meta?.products || card.productIds || [];
+      const has = existing.includes(productId);
+      const should = selectedMoodIds.includes(card._id);
+      if (should && !has) {
+        ops.push(
+          axios.put(
+            `/home-sections/${card._id}`,
+            { meta: { ...(card.meta || {}), products: [...existing, productId] } },
+            authConfig
+          )
+        );
+      }
+      if (!should && has) {
+        const filtered = existing.filter((id) => id !== productId);
+        ops.push(
+          axios.put(
+            `/home-sections/${card._id}`,
+            { meta: { ...(card.meta || {}), products: filtered } },
+            authConfig
+          )
+        );
+      }
+    });
+    if (ops.length) {
+      await Promise.all(ops);
+      fetchHomeSections();
+    }
+  };
+
   const handleProductSubmit = async () => {
     try {
       const formData = new FormData();
@@ -803,14 +913,22 @@ const orderStatusOptions = [
         }
       };
 
+      let savedId = editingProductId;
       if (editingProductId) {
         await axios.put(`/products/${editingProductId}`, formData, config);
         toast.success("Product updated");
       } else {
-        await axios.post("/products", formData, config);
+        const res = await axios.post("/products", formData, config);
+        savedId = res.data?._id || savedId;
         toast.success("Product created");
       }
+
+      if (savedId) {
+        await syncProductMoodLinks(savedId, productMoodIds);
+      }
+
       setProductForm(emptyProduct);
+      setProductMoodIds([]);
       setProductFiles([]);
       setEditingProductId(null);
       fetchProducts();
@@ -838,10 +956,18 @@ const orderStatusOptions = [
       video: product.video || "",
       collectionIds: product.collections?.map((c) => c._id || c) || []
     });
+    const linkedMoodIds = moodCards
+      .filter((card) => {
+        const ids = card.meta?.products || card.productIds || [];
+        return ids.includes(product._id);
+      })
+      .map((card) => card._id);
+    setProductMoodIds(linkedMoodIds);
   };
 
   const resetProductForm = () => {
     setProductForm(emptyProduct);
+    setProductMoodIds([]);
     setProductFiles([]);
     setEditingProductId(null);
   };
@@ -974,7 +1100,7 @@ const orderStatusOptions = [
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg)]">
+    <div className="admin-page min-h-screen bg-[var(--bg)]">
       <header className="sticky top-0 z-30 bg-gradient-to-b from-[var(--surface)]/95 to-[var(--surface-muted)]/88 backdrop-blur border-b border-[var(--border)] shadow-[0_12px_40px_rgba(24,16,10,0.08)]">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div>
@@ -982,7 +1108,7 @@ const orderStatusOptions = [
               Admin
             </p>
             <h1 className="text-xl font-semibold text-[var(--ink)]">
-              Mrigmaya Saree Control Room
+              Mrigmaya Control Room
             </h1>
           </div>
           <div className="flex items-center gap-3">
@@ -1002,8 +1128,8 @@ const orderStatusOptions = [
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8 space-y-10">
-        <section className="card-shell p-6">
+      <main className="max-w-6xl mx-auto px-6 py-8 space-y-10 admin-main">
+        <section className="card-shell p-6 admin-card admin-grid">
           <p className="text-xs uppercase tracking-[0.4em] text-gray-400">Quick sections</p>
           <h2 className="text-2xl font-semibold text-gray-900">What would you like to manage?</h2>
           <p className="text-sm text-gray-500 mt-2">
@@ -1014,7 +1140,7 @@ const orderStatusOptions = [
               <button
                 key={tab.id}
                 onClick={() => setActivePanel(tab.id)}
-                className={`px-4 py-2 rounded-full text-sm font-semibold border transition ${
+                className={`admin-tab px-4 py-2 rounded-full text-sm font-semibold border transition ${
                   activePanel === tab.id
                     ? "bg-[var(--primary)] text-white border-[var(--primary)] shadow-sm"
                     : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--primary)] hover:text-[var(--ink)]"
@@ -1647,6 +1773,47 @@ const orderStatusOptions = [
             </div>
           </div>
 
+          <div className="mt-4">
+            <label className="text-sm text-gray-500">Attach to mood cards (home tiles)</label>
+            <select
+              multiple
+              value={productMoodIds}
+              onChange={(e) =>
+                setProductMoodIds(Array.from(e.target.selectedOptions, (option) => option.value))
+              }
+              className="border rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 focus:ring-pink-100 h-32"
+            >
+              {moodCards.map((card) => (
+                <option key={card._id} value={card._id}>
+                  {card.title || "Untitled"} {card.tag ? `(${card.tag})` : ""}
+                </option>
+              ))}
+            </select>
+            <div className="flex flex-wrap gap-2 mt-2 text-xs">
+              {moodCards.map((card) => (
+                <button
+                  key={`quick-mood-${card._id}`}
+                  type="button"
+                  className="px-3 py-1 border border-gray-200 rounded-full"
+                  onClick={() =>
+                    setProductMoodIds((prev) => (prev.includes(card._id) ? prev : [...prev, card._id]))
+                  }
+                >
+                  Add to {card.title || "Mood"}
+                </button>
+              ))}
+              {productMoodIds.length > 0 && (
+                <button
+                  type="button"
+                  className="px-3 py-1 border border-gray-200 rounded-full text-gray-500"
+                  onClick={() => setProductMoodIds([])}
+                >
+                  Clear mood selection
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="grid md:grid-cols-2 gap-4 mt-4">
             <div>
               <label className="text-sm text-gray-500">Product video URL (optional)</label>
@@ -1849,14 +2016,14 @@ const orderStatusOptions = [
             Create collection
           </button>
 
-          <div className="mt-10 space-y-10">
+          <div className="mt-10 space-y-10 admin-collections">
             {collections.length === 0 && (
               <p className="text-sm text-gray-500">
                 Create a collection to start building your home tiles.
               </p>
             )}
             {collections.map((collection) => (
-              <div key={collection._id} className="grid lg:grid-cols-[1.1fr,0.9fr] gap-6">
+              <div key={collection._id} className="admin-collection-row">
                 <CollectionCard
                   collection={collection}
                   onSave={(payload) => handleUpdateCollection(collection._id, payload)}
@@ -1887,12 +2054,12 @@ const orderStatusOptions = [
 
           <div className="mt-6 border border-gray-100 rounded-2xl p-4 space-y-4">
             <div>
-              <p className="text-sm font-semibold text-gray-900">Upload photos</p>
-              <p className="text-xs text-gray-500">Select one or more files to queue them.</p>
+              <p className="text-sm font-semibold text-gray-900">Upload photos / videos</p>
+              <p className="text-xs text-gray-500">Select one or more images or MP4/WebM clips.</p>
               <input
                 type="file"
                 multiple
-                accept="image/*"
+                accept="image/*,video/*"
                 className="mt-3 text-sm"
                 onChange={(e) => {
                   handleHeroFileUpload(e.target.files);
@@ -1901,12 +2068,12 @@ const orderStatusOptions = [
               />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">Or paste an image link</p>
+              <p className="text-sm font-semibold text-gray-900">Or paste an image / video link</p>
               <div className="flex flex-col gap-2 md:flex-row mt-2">
                 <input
                   value={heroLinkInput}
                   onChange={(e) => setHeroLinkInput(e.target.value)}
-                  placeholder="https://example.com/hero.jpg"
+                  placeholder="https://example.com/hero.jpg or https://example.com/hero.mp4"
                   className="border rounded-xl px-4 py-2 text-sm flex-1"
                 />
                 <button
@@ -2228,8 +2395,11 @@ const orderStatusOptions = [
 }
 
 function HeroSlideCard({ slide, index, isLast, onToggle, onDelete, onMoveUp, onMoveDown, onReorder }) {
-  const preview = slide.image || slide.heroImage;
+  const videoSrc = resolveAsset(slide.video || slide.heroVideo || slide.meta?.video || "");
+  const imageSrc = resolveAsset(slide.image || slide.heroImage || (Array.isArray(slide.images) ? slide.images[0] : ""));
+  const preview = videoSrc || imageSrc;
   const active = slide.active !== false;
+  const isVideo = Boolean(videoSrc);
   return (
     <div
       className="border border-gray-200 rounded-2xl p-4 space-y-3 bg-white"
@@ -2244,14 +2414,26 @@ function HeroSlideCard({ slide, index, isLast, onToggle, onDelete, onMoveUp, onM
     >
       <div className="rounded-xl overflow-hidden bg-gray-100 aspect-[16/9]">
         {preview ? (
-          <img
-            src={preview}
-            alt={slide.title || `Slide ${index + 1}`}
-            className="w-full h-full object-cover"
-          />
+          isVideo ? (
+            <video
+              src={preview}
+              poster={imageSrc || undefined}
+              className="w-full h-full object-cover"
+              muted
+              loop
+              playsInline
+              preload="metadata"
+            />
+          ) : (
+            <img
+              src={preview}
+              alt={slide.title || `Slide ${index + 1}`}
+              className="w-full h-full object-cover"
+            />
+          )
         ) : (
           <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
-            No image
+            No media
           </div>
         )}
       </div>
@@ -2271,6 +2453,7 @@ function HeroSlideCard({ slide, index, isLast, onToggle, onDelete, onMoveUp, onM
           </a>
         )}
       </div>
+      {isVideo && <span className="inline-block text-[11px] text-indigo-600 font-semibold">Video slide</span>}
       <label className="flex items-center gap-2 text-sm text-gray-600">
         <input type="checkbox" checked={active} onChange={(e) => onToggle(e.target.checked)} />
         Show on homepage
@@ -2442,120 +2625,6 @@ function MoodCard({
             ))}
           </select>
         </div>
-        <div className="mt-3 space-y-2">
-          <p className="font-semibold">Custom products (card only)</p>
-          <div className="grid gap-2">
-            {customProducts.length === 0 && <span className="text-gray-400">None</span>}
-            {customProducts.map((item, idx) => (
-              <div
-                key={`${item.name}-${idx}`}
-                className="flex items-center justify-between border rounded-xl px-3 py-2 bg-white"
-              >
-                <div className="flex items-center gap-2">
-                  {item.image && (
-                    <img src={resolveAsset(item.image)} alt="" className="w-10 h-10 object-cover rounded-lg" />
-                  )}
-                  <div>
-                    <p className="font-semibold text-gray-800 text-sm">{item.name}</p>
-                    <p className="text-gray-500 text-xs">{item.price ? `₹${item.price}` : ""}</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="text-red-500 text-xs"
-                  onClick={() => onDeleteCustom(idx)}
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-          </div>
-          <div className="grid md:grid-cols-3 gap-2">
-            <input
-              value={customItem.name}
-              onChange={(e) => setCustomItem((p) => ({ ...p, name: e.target.value }))}
-              className="border rounded-xl px-2 py-2 text-sm"
-              placeholder="Name"
-            />
-            <input
-              value={customItem.price}
-              onChange={(e) => setCustomItem((p) => ({ ...p, price: e.target.value }))}
-              className="border rounded-xl px-2 py-2 text-sm"
-              placeholder="Selling price"
-            />
-            <input
-              value={customItem.mrp}
-              onChange={(e) => setCustomItem((p) => ({ ...p, mrp: e.target.value }))}
-              className="border rounded-xl px-2 py-2 text-sm"
-              placeholder="MRP (optional)"
-            />
-            <input
-              value={customItem.image}
-              onChange={(e) =>
-                setCustomItem((p) => ({
-                  ...p,
-                  image: e.target.value,
-                  images: e.target.value ? [e.target.value] : []
-                }))
-              }
-              className="border rounded-xl px-2 py-2 text-sm"
-              placeholder="Image URL (or first image)"
-            />
-          </div>
-          <div className="flex flex-wrap gap-2 items-center justify-between">
-            <div className="flex gap-2 items-center">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="text-xs"
-                onChange={async (e) => {
-                  const files = Array.from(e.target.files || []);
-                  if (!files.length) return;
-                  const urls = [];
-                  for (const file of files) {
-                    const url = await onUploadCustom(file);
-                    if (url) urls.push(url);
-                  }
-                  if (urls.length) {
-                    setCustomItem((p) => ({ ...p, image: urls[0], images: urls }));
-                  }
-                  e.target.value = "";
-                }}
-              />
-              <span className="text-xs text-gray-500">Upload images (select multiple)</span>
-            </div>
-            {customItem.images?.length > 0 && (
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <span>{customItem.images.length} selected</span>
-                <div className="flex gap-1">
-                  {customItem.images.slice(0, 3).map((url, idx) => (
-                    <img
-                      key={`${url}-${idx}`}
-                      src={resolveAsset(url)}
-                      alt=""
-                      className="w-8 h-8 rounded border object-cover"
-                    />
-                  ))}
-                  {customItem.images.length > 3 && (
-                    <span className="text-gray-400">+{customItem.images.length - 3}</span>
-                  )}
-                </div>
-              </div>
-            )}
-            <button
-              type="button"
-              className="text-sm bg-gray-900 text-white px-3 py-2 rounded-xl"
-              onClick={() => {
-                if (!customItem.name.trim() || !customItem.price.toString().trim()) return;
-                onAddCustom({ ...customItem });
-                setCustomItem({ name: "", price: "", mrp: "", image: "", images: [] });
-              }}
-            >
-              Add custom
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -2623,6 +2692,12 @@ function CollectionCard({ collection, onSave, onDelete, onHeroUpload, onGalleryU
           </span>
         </div>
         <input
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          placeholder="Collection title"
+          className="border rounded-xl px-3 py-2 text-sm"
+        />
+        <input
           value={form.subtitle}
           onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
           placeholder="Subtitle"
@@ -2673,6 +2748,15 @@ function CollectionCard({ collection, onSave, onDelete, onHeroUpload, onGalleryU
                 </a>
               )}
             </div>
+            {form.heroImage && (
+              <div className="mt-2 rounded-xl overflow-hidden border bg-gray-50">
+                <img
+                  src={resolveAsset(form.heroImage)}
+                  alt="Hero preview"
+                  className="w-full h-48 object-cover"
+                />
+              </div>
+            )}
           </div>
         </div>
         <div className="border border-gray-100 rounded-2xl p-3">
@@ -2862,3 +2946,4 @@ function CollectionProductManager({ collection, products, onUpdate }) {
     </div>
   );
 }
+

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useEffect, useMemo, useState, useContext } from "react";
+import { useEffect, useMemo, useState, useContext, useRef } from "react";
 import axios from "../api/axios";
 import { CartContext } from "../context/CartContext";
 import { setPageMeta } from "../utils/seo";
@@ -95,10 +95,15 @@ const HeroBanner = ({ slides = [] }) => {
           slide?.meta?.cover ||
           (Array.isArray(slide?.images) ? slide.images[0] : null);
         const coverSource = typeof source === "string" ? source.trim() : source;
-        if (!coverSource) return null;
+        const rawVideo = slide?.heroVideo || slide?.video || slide?.meta?.video;
+        const videoSource = typeof rawVideo === "string" ? rawVideo.trim() : rawVideo;
+        if (!coverSource && !videoSource) return null;
+        const heroImage = coverSource ? resolveAsset(coverSource, coverSource) : "";
+        const heroVideo = videoSource ? resolveAsset(videoSource, videoSource) : "";
         return {
           ...slide,
-          heroImage: resolveAsset(coverSource, coverSource)
+          heroImage,
+          heroVideo
         };
       })
       .filter(Boolean) || [];
@@ -110,16 +115,49 @@ const HeroBanner = ({ slides = [] }) => {
     setActiveIndex(0);
   }, [normalizedSlides.length]);
 
+  const videoRefs = useRef([]);
+
   useEffect(() => {
-    if (!normalizedSlides.length) return;
-    const ticker = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % normalizedSlides.length);
-    }, 3000);
-    return () => clearInterval(ticker);
-  }, [normalizedSlides.length]);
+    if (!normalizedSlides.length) return undefined;
+    const activeSlide = normalizedSlides[activeIndex] || {};
+    const isVideo = Boolean(activeSlide.heroVideo);
+
+    const goNext = () => setActiveIndex((prev) => (prev + 1) % normalizedSlides.length);
+    let timer;
+
+    if (isVideo) {
+      const videoEl = videoRefs.current[activeIndex];
+      if (videoEl) {
+        videoEl.currentTime = 0;
+        const onEnded = () => goNext();
+        videoEl.addEventListener("ended", onEnded);
+        // Attempt play; ignore autoplay rejections on some browsers.
+        const playPromise = videoEl.play?.();
+        if (playPromise?.catch) {
+          playPromise.catch(() => {});
+        }
+        const durationMs =
+          Number.isFinite(videoEl.duration) && videoEl.duration > 0 ? videoEl.duration * 1000 : 0;
+        if (durationMs > 0) {
+          timer = setTimeout(goNext, durationMs + 200); // slight buffer after video ends
+        }
+        return () => {
+          videoEl.pause?.();
+          videoEl.removeEventListener("ended", onEnded);
+          if (timer) clearTimeout(timer);
+        };
+      }
+    }
+
+    timer = setTimeout(goNext, 3000);
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [normalizedSlides, activeIndex]);
 
   const active = normalizedSlides[activeIndex];
   const heroImage = active?.heroImage;
+  const heroVideo = active?.heroVideo;
   const headingCopy = active?.title || active?.description || active?.subtitle;
   const supportingCopy = active?.title
     ? active?.description || active?.subtitle
@@ -136,21 +174,39 @@ const HeroBanner = ({ slides = [] }) => {
         <div className="relative rounded-[40px] overflow-hidden aspect-[16/9] min-h-[420px] shadow-2xl">
           {normalizedSlides.map((slide, index) => {
             const cover = slide.heroImage;
+            const video = slide.heroVideo;
+            const isActive = index === activeIndex;
+            const isVideo = Boolean(video);
             return (
               <div
                 key={slide._id || slide.title || index}
                 className={`absolute inset-0 transition-all duration-700 ease-out ${
-                  index === activeIndex ? "opacity-100 scale-100" : "opacity-0 scale-105"
+                  isActive ? "opacity-100 scale-100" : "opacity-0 scale-105"
                 }`}
               >
-                <img
-                  src={cover}
-                  alt={slide.title || "Hero slide"}
-                  className="w-full h-full object-cover object-top bg-[var(--surface)]"
-                  loading={index === activeIndex ? "eager" : "lazy"}
-                  decoding="async"
-                  fetchpriority={index === activeIndex ? "high" : "auto"}
-                />
+                {isVideo ? (
+                  <video
+                    src={video}
+                    poster={cover || undefined}
+                    className="w-full h-full object-cover object-top bg-[var(--surface)]"
+                    muted
+                    playsInline
+                    preload="metadata"
+                    autoPlay={isActive}
+                    ref={(el) => {
+                      videoRefs.current[index] = el || null;
+                    }}
+                  />
+                ) : (
+                  <img
+                    src={cover}
+                    alt={slide.title || "Hero slide"}
+                    className="w-full h-full object-cover object-top bg-[var(--surface)]"
+                    loading={isActive ? "eager" : "lazy"}
+                    decoding="async"
+                    fetchpriority={isActive ? "high" : "auto"}
+                  />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
               </div>
             );
@@ -203,10 +259,10 @@ const HeroBanner = ({ slides = [] }) => {
 const resolveIcon = (icon) => {
   if (!icon) return null;
   if (icon.startsWith("http") || icon.startsWith("/")) {
-    return <img src={icon} alt="" className="w-6 h-6 object-contain" />;
+    return <img src={icon} alt="" className="w-7 h-7 object-contain drop-shadow-sm" />;
   }
   return (
-    <span className="text-xl" role="img" aria-hidden="true">
+    <span className="text-2xl leading-none" role="img" aria-hidden="true">
       {icon}
     </span>
   );
@@ -216,21 +272,26 @@ const USPStrip = ({ items = uspFallback }) => {
   if (!items.length) return null;
   const marqueeItems = [...items, ...items];
   return (
-    <section className="bg-white border-y border-[var(--border)] overflow-hidden">
-      <div className="marquee-track flex gap-12 items-center py-6 pl-6">
+    <section className="usp-rail relative overflow-hidden py-6">
+      <div className="usp-rail__mask" aria-hidden="true" />
+      <div className="usp-rail__glow usp-rail__glow--one" aria-hidden="true" />
+      <div className="usp-rail__glow usp-rail__glow--two" aria-hidden="true" />
+      <div className="usp-rail__track marquee-track flex gap-10 items-center py-4 pl-8">
         {marqueeItems.map((usp, index) => {
           const icon = usp.icon || usp.meta?.icon;
           return (
-          <div key={`${usp._id || usp.title}-${index}`} className="flex items-center gap-3 min-w-[220px]">
-            <div className="flex-shrink-0 text-[var(--primary)]">{resolveIcon(icon)}</div>
-            <div>
-              <p className="font-semibold text-gray-900 text-sm whitespace-nowrap">{usp.title}</p>
-              <p className="text-[11px] uppercase tracking-[0.3em] text-gray-400 mt-0.5 whitespace-nowrap">
-                {usp.sub || usp.subtitle}
-              </p>
+            <div
+              key={`${usp._id || usp.title}-${index}`}
+              className="usp-rail__item"
+              style={{ animationDelay: `${(index % items.length) * 80}ms` }}
+            >
+              <div className="usp-rail__icon">{resolveIcon(icon)}</div>
+              <div>
+                <p className="usp-rail__title">{usp.title}</p>
+                <p className="usp-rail__sub">{usp.sub || usp.subtitle}</p>
+              </div>
             </div>
-          </div>
-        );
+          );
         })}
       </div>
     </section>
@@ -268,18 +329,13 @@ const CategoryShowcase = ({ cards = [] }) => {
   if (!displayCards.length) return null;
 
   return (
-    <section className="py-10 px-4">
-      <div className="max-w-6xl mx-auto space-y-5">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-[0.4em] text-gray-400">Shop by mood</p>
-            <h2 className="text-3xl font-semibold text-gray-900">Featured edits</h2>
-          </div>
-          <Link to="/products" className="text-sm font-semibold text-[var(--primary)]">
-            View all products
-          </Link>
+    <section className="py-12 px-4">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="text-center space-y-2">
+          <p className="text-xs uppercase tracking-[0.4em] text-gray-400">Shop by mood</p>
+          <h2 className="text-3xl font-semibold text-gray-900">Featured edits</h2>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           {displayCards.map((card) => {
             const cover = resolveAsset(
               card.image,
@@ -502,22 +558,31 @@ const StorySection = ({ story = storyFallback }) => {
   if (!story) return null;
   const stats = story.meta?.stats || story.stats || storyFallback.meta?.stats || [];
   return (
-    <section className="bg-[var(--surface-muted)] py-14 px-4">
-      <div className="max-w-5xl mx-auto text-center space-y-4">
-        <p className="text-xs uppercase tracking-[0.4em] text-gray-500">Brand story</p>
-        <h3 className="text-3xl font-semibold text-gray-900">{story.title}</h3>
-        <p className="text-gray-600">{story.description}</p>
+    <section className="story-hero relative overflow-hidden py-16 px-4">
+      <div className="story-hero__glow story-hero__glow--one" aria-hidden="true" />
+      <div className="story-hero__glow story-hero__glow--two" aria-hidden="true" />
+      <div className="max-w-6xl mx-auto relative z-10 text-center space-y-6">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 backdrop-blur border border-white/60 shadow-sm">
+          <span className="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" />
+          <span className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">Brand story</span>
+        </div>
+        <h3 className="text-3xl md:text-4xl font-semibold text-[var(--ink)] drop-shadow-sm">{story.title}</h3>
+        <p className="text-lg md:text-xl text-[var(--muted)] max-w-4xl mx-auto leading-relaxed">{story.description}</p>
         {story.ctaLabel && (
-          <Link to={story.ctaLink || "/products"} className="inline-flex items-center justify-center bg-gray-900 text-white rounded-full px-6 py-3 text-sm font-semibold">
+          <Link
+            to={story.ctaLink || "/products"}
+            className="inline-flex items-center justify-center px-7 py-3 rounded-full text-white text-sm font-semibold shadow-lg story-hero__cta"
+          >
             {story.ctaLabel}
+            <span className="ml-2 text-lg">→</span>
           </Link>
         )}
         {stats.length > 0 && (
-          <div className="grid grid-cols-3 gap-6 mt-6">
-            {stats.map((stat) => (
-              <div key={stat.label} className="space-y-1">
-                <p className="text-3xl font-semibold text-gray-900">{stat.value}</p>
-                <p className="text-xs uppercase tracking-[0.3em] text-gray-500">{stat.label}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+            {stats.map((stat, idx) => (
+              <div key={stat.label} className="story-hero__stat" style={{ animationDelay: `${idx * 120}ms` }}>
+                <p className="text-3xl font-semibold text-[var(--ink)]">{stat.value}</p>
+                <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">{stat.label}</p>
               </div>
             ))}
           </div>
@@ -582,55 +647,101 @@ const TestimonialStrip = ({ testimonials = [], title = "Customer reviews" }) => 
 };
 
 const SupportFooter = () => (
-  <section className="bg-[var(--ink)] text-[var(--surface)] py-14 px-4 mt-8">
-    <div className="max-w-6xl mx-auto grid gap-10 md:grid-cols-2">
-      <div>
-        <p className="text-xs uppercase tracking-[0.4em] text-[var(--accent)] opacity-90">Customer care</p>
-        <h3 className="text-2xl font-semibold mt-2">We are here for you</h3>
-        <ul className="mt-6 space-y-2 text-sm">
-          <li>
-            <Link to="/info/about" className="text-white/80 hover:underline">
-              About us
-            </Link>
-          </li>
-          <li>
-            <Link to="/info/contact" className="text-white/80 hover:underline">
-              Contact us
-            </Link>
-          </li>
-          <li>
-            <Link to="/info/return-policy" className="text-white/80 hover:underline">
-              Return policy
-            </Link>
-          </li>
-          <li>
-            <Link to="/info/shipping-policy" className="text-white/80 hover:underline">
-              Shipping policy
-            </Link>
-          </li>
-          <li>
-            <Link to="/info/privacy-policy" className="text-white/80 hover:underline">
-              Privacy policy
-            </Link>
-          </li>
-          <li>
-            <Link to="/info/terms-of-service" className="text-white/80 hover:underline">
-              Terms of service
-            </Link>
-          </li>
-        </ul>
-      </div>
-      <div>
-        <p className="text-xs uppercase tracking-[0.4em] text-[var(--accent)] opacity-90">Get in touch</p>
-        <h3 className="text-2xl font-semibold mt-2">Styling concierge</h3>
-        <p className="mt-4 text-sm text-white/80">Working hours: 10:00 AM - 6:30 PM (Mon - Sat)</p>
-        <p className="mt-2 text-sm text-white/80">
-          WhatsApp: <a className="font-semibold underline" href="https://wa.me/919999838768" target="_blank" rel="noreferrer">+91 99998 38768</a>
-        </p>
-        <p className="mt-1 text-sm text-white/80">
-          Call us: <a className="font-semibold underline" href="tel:+919999838768">+91 99998 38768</a>
-        </p>
-        <p className="mt-1 text-sm text-white/80">Email: <span className="font-semibold">care@sudathi.com</span></p>
+  <section className="support-footer relative overflow-hidden mt-12">
+    <div className="support-footer__glow support-footer__glow--one" aria-hidden="true" />
+    <div className="support-footer__glow support-footer__glow--two" aria-hidden="true" />
+    <div className="relative max-w-6xl mx-auto px-4 py-16">
+      <div className="grid gap-10 md:grid-cols-2 bg-[rgba(16,12,14,0.9)] border border-white/10 rounded-[28px] p-8 md:p-10 shadow-[0_24px_70px_rgba(0,0,0,0.28)] backdrop-blur-md support-footer__card text-[var(--surface)]">
+        <div>
+          <p className="text-xs uppercase tracking-[0.4em] text-[var(--accent)] opacity-90">Customer care</p>
+          <h3 className="text-2xl font-semibold mt-2 text-white">We are here for you</h3>
+          <ul className="mt-6 space-y-3 text-sm text-white/80">
+            <li>
+              <Link to="/info/about" className="hover:underline decoration-[var(--accent)] decoration-2 underline-offset-4">
+                About us
+              </Link>
+            </li>
+            <li>
+              <Link to="/info/contact" className="hover:underline decoration-[var(--accent)] decoration-2 underline-offset-4">
+                Contact us
+              </Link>
+            </li>
+            <li>
+              <Link to="/info/return-policy" className="hover:underline decoration-[var(--accent)] decoration-2 underline-offset-4">
+                Return policy
+              </Link>
+            </li>
+            <li>
+              <Link to="/info/shipping-policy" className="hover:underline decoration-[var(--accent)] decoration-2 underline-offset-4">
+                Shipping policy
+              </Link>
+            </li>
+            <li>
+              <Link to="/info/privacy-policy" className="hover:underline decoration-[var(--accent)] decoration-2 underline-offset-4">
+                Privacy policy
+              </Link>
+            </li>
+            <li>
+              <Link to="/info/terms-of-service" className="hover:underline decoration-[var(--accent)] decoration-2 underline-offset-4">
+                Terms of service
+              </Link>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <p className="text-xs uppercase tracking-[0.4em] text-[var(--accent)] opacity-90">Get in touch</p>
+          <h3 className="text-2xl font-semibold mt-2 text-white">Styling concierge</h3>
+          <p className="mt-4 text-sm text-white/80">Working hours: 10:00 AM - 6:30 PM (Mon - Sat)</p>
+          <div className="mt-4 space-y-2 text-sm text-white/90">
+            <p>
+              WhatsApp:{" "}
+              <a className="font-semibold underline decoration-[var(--accent)] decoration-2 underline-offset-4" href="https://wa.me/919754658009" target="_blank" rel="noreferrer">
+                +91 97546 58009
+              </a>
+            </p>
+            <p>
+              Call us:{" "}
+              <a className="font-semibold underline decoration-[var(--accent)] decoration-2 underline-offset-4" href="tel:+919754658009">
+                +91 97546 58009
+              </a>
+            </p>
+            <p>
+              Email:{" "}
+              <a className="font-semibold underline decoration-[var(--accent)] decoration-2 underline-offset-4" href="mailto:mrigmaya101@gmail.com">
+                mrigmaya101@gmail.com
+              </a>
+            </p>
+          </div>
+          <div className="mt-5 flex flex-wrap gap-3 text-sm">
+            <a
+              className="support-footer__pill support-footer__pill--instagram"
+              href="https://www.instagram.com/yourhandle"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" strokeWidth="1.6" />
+                <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.6" />
+                <circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" />
+              </svg>
+              Instagram
+            </a>
+            <a
+              className="support-footer__pill support-footer__pill--facebook"
+              href="https://www.facebook.com/yourpage"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M14 8h2V5h-2c-1.7 0-3 1.3-3 3v2H9v3h2v6h3v-6h2.1l.4-3H14V8.5c0-.3.2-.5.5-.5Z"
+                  fill="currentColor"
+                />
+              </svg>
+              Facebook
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -759,7 +870,7 @@ export default function Home() {
   const heroSlidesToShow = homeLoading
     ? []
     : heroSlides.filter((slide) => {
-        const raw =
+        const imageRaw =
           slide?.heroImage ||
           slide?.image ||
           slide?.mobileImage ||
@@ -769,40 +880,11 @@ export default function Home() {
           slide?.meta?.image ||
           slide?.meta?.cover ||
           (Array.isArray(slide?.images) ? slide.images[0] : null);
-        const hasImage = typeof raw === "string" ? raw.trim() : Boolean(raw);
-        return slide?.active !== false && hasImage;
+        const videoRaw = slide?.heroVideo || slide?.video || slide?.meta?.video;
+        const hasImage = typeof imageRaw === "string" ? imageRaw.trim() : Boolean(imageRaw);
+        const hasVideo = typeof videoRaw === "string" ? videoRaw.trim() : Boolean(videoRaw);
+        return slide?.active !== false && (hasImage || hasVideo);
       });
-  const trendingCollection = useMemo(() => featuredCollections[0] || null, [featuredCollections]);
-  const signatureCollection = useMemo(
-    () =>
-      featuredCollections.find(
-        (c) =>
-          (c.slug || "").toLowerCase().includes("signature") ||
-          /signature/i.test(c.title || "")
-      ) || featuredCollections[1] || null,
-    [featuredCollections]
-  );
-  const usedCollectionIds = useMemo(
-    () => [trendingCollection?._id, signatureCollection?._id].filter(Boolean),
-    [trendingCollection, signatureCollection]
-  );
-  const remainingCollections = useMemo(
-    () => featuredCollections.filter((c) => !usedCollectionIds.includes(c._id)),
-    [featuredCollections, usedCollectionIds]
-  );
-
-  const getCollectionProducts = (collection) => {
-    if (!collection) return [];
-    if (Array.isArray(collection.products) && collection.products.length) {
-      return collection.products;
-    }
-    if (collection._id && products.length) {
-      return products.filter((p) =>
-        (p.collections || []).some((col) => (col._id || col) === collection._id)
-      );
-    }
-    return [];
-  };
 
   return (
     <div className="bg-[var(--bg)] text-[var(--ink)]">
@@ -812,107 +894,13 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 text-sm text-amber-600">{homeError}</div>
       )}
       <CategoryShowcase cards={categoryCards} products={products} />
-      {trendingCollection && (
-        <section className="py-8 px-4">
-          <div className="max-w-6xl mx-auto space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-xs uppercase tracking-[0.35em] text-gray-400">Trending collection</p>
-                <h3 className="text-2xl font-semibold text-gray-900">{trendingCollection.title}</h3>
-              </div>
-              <Link
-                to={`/products?collectionSlug=${trendingCollection.slug || trendingCollection._id || ""}`}
-                className="text-sm font-semibold text-[var(--primary)]"
-              >
-                View all
-              </Link>
-            </div>
-            {trendingCollection.heroImage || trendingCollection.image ? (
-              <Link
-                to={`/products?collectionSlug=${trendingCollection.slug || trendingCollection._id || ""}`}
-                className="block overflow-hidden rounded-[28px] shadow-[0_16px_40px_rgba(0,0,0,0.16)]"
-              >
-                <img
-                  src={resolveAsset(trendingCollection.heroImage || trendingCollection.image)}
-                  alt={trendingCollection.title}
-                  className="w-full h-56 md:h-72 object-cover"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </Link>
-            ) : null}
-            <div className="mobile-rail">
-              {getCollectionProducts(trendingCollection)
-                .slice(0, 8)
-                .map((item) => (
-                  <Link
-                    to={`/product/${item._id || item.id || ""}`}
-                    key={item._id}
-                    className="mobile-rail__card"
-                  >
-                    <div className="mobile-rail__img">
-                      <img src={resolveImage(item)} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
-                    </div>
-                    <p className="mobile-rail__title">{item.name}</p>
-                    <p className="mobile-rail__price">{formatPrice(item.discountPrice || item.price)}</p>
-                  </Link>
-                ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {signatureCollection && (
-        <section className="py-6 px-4">
-          <div className="max-w-6xl mx-auto space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-xs uppercase tracking-[0.35em] text-gray-400">Signature sarees</p>
-                <h3 className="text-2xl font-semibold text-gray-900">{signatureCollection.title}</h3>
-              </div>
-              <Link
-                to={`/products?collectionSlug=${signatureCollection.slug || signatureCollection._id || ""}`}
-                className="text-sm font-semibold text-[var(--primary)]"
-              >
-                View all
-              </Link>
-            </div>
-            {signatureCollection.heroImage || signatureCollection.image ? (
-              <Link
-                to={`/products?collectionSlug=${signatureCollection.slug || signatureCollection._id || ""}`}
-                className="block overflow-hidden rounded-[24px] shadow-[0_12px_34px_rgba(0,0,0,0.14)]"
-              >
-                <img
-                  src={resolveAsset(signatureCollection.heroImage || signatureCollection.image)}
-                  alt={signatureCollection.title}
-                  className="w-full h-48 md:h-64 object-cover"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </Link>
-            ) : null}
-            <div className="mobile-rail">
-              {getCollectionProducts(signatureCollection)
-                .slice(0, 6)
-                .map((item) => (
-                  <Link
-                    to={`/product/${item._id || item.id || ""}`}
-                    key={item._id}
-                    className="mobile-rail__card mobile-rail__card--compact"
-                  >
-                    <div className="mobile-rail__img">
-                      <img src={resolveImage(item)} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
-                    </div>
-                    <p className="mobile-rail__title">{item.name}</p>
-                  </Link>
-                ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {remainingCollections.length > 0 &&
-        remainingCollections.map((collection) => (
+      <div className="max-w-6xl mx-auto px-4 flex justify-end mt-2">
+        <Link to="/products" className="text-sm text-[var(--primary)] font-semibold">
+          View all products
+        </Link>
+      </div>
+      {featuredCollections.length > 0 &&
+        featuredCollections.map((collection) => (
           <ProductRail
             key={collection._id}
             collection={collection}

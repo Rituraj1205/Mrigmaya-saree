@@ -49,7 +49,7 @@ export default function CartDrawer({ open, close }) {
         <div className="flex items-center justify-between">
           <div>
             <p className="muted-label">Your bag</p>
-            <h2 className="text-xl font-semibold text-[var(--ink)]">Mrigmaya Saree</h2>
+            <h2 className="text-xl font-semibold text-[var(--ink)]">Mrigmaya</h2>
           </div>
           <button
             onClick={close}
