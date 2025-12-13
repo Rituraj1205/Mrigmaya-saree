@@ -3,8 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import axios from "../api/axios";
 import BrandLoader from "../components/BrandLoader";
 import { setPageMeta } from "../utils/seo";
-
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
+import { buildAssetUrl } from "../utils/apiBase";
 
 const formatPrice = (value) =>
   `Rs. ${new Intl.NumberFormat("en-IN", {
@@ -12,11 +11,7 @@ const formatPrice = (value) =>
   }).format(value || 0)}`;
 const BLANK_IMG = "data:image/gif;base64,R0lGODlhAQABAAD/ACw=";
 
-const resolveAsset = (url, fallback) => {
-  if (!url) return fallback;
-  if (url.startsWith("http")) return url;
-  return `${API_BASE.replace(/\/api\/?$/, "")}${url}`;
-};
+const resolveAsset = (url, fallback) => buildAssetUrl(url, fallback);
 
 const fallbackImage = BLANK_IMG;
 

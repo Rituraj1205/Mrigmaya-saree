@@ -3,9 +3,8 @@ import { useEffect, useMemo, useState, useContext, useRef } from "react";
 import axios from "../api/axios";
 import { CartContext } from "../context/CartContext";
 import { setPageMeta } from "../utils/seo";
+import { buildAssetUrl } from "../utils/apiBase";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
-const ASSET_BASE = API_BASE.replace(/\/api\/?$/, "");
 const BLANK_IMG = "data:image/gif;base64,R0lGODlhAQABAAD/ACw=";
 
 const heroFallbacks = [
@@ -65,19 +64,14 @@ const formatPrice = (value) =>
     maximumFractionDigits: 0
   }).format(value || 0)}`;
 
-const resolveAsset = (url, fallback) => {
-  if (!url) return fallback;
-  if (url.startsWith("http")) return url;
-  return `${ASSET_BASE}${url}`;
-};
+const resolveAsset = (url, fallback) => buildAssetUrl(url, fallback);
 
 const resolveImage = (item) => {
   const raw = item?.images?.[0];
   if (!raw) {
     return BLANK_IMG;
   }
-  if (raw.startsWith("http")) return raw;
-  return `${ASSET_BASE}${raw}`;
+  return resolveAsset(raw, BLANK_IMG);
 };
 
 const HeroBanner = ({ slides = [] }) => {

@@ -3,14 +3,9 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axios from "../../api/axios";
 import { AuthContext } from "../../context/AuthContext";
+import { buildAssetUrl } from "../../utils/apiBase";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
-const ASSET_BASE = API_BASE.replace(/\/api\/?$/, "");
-const resolveAsset = (url) => {
-  if (!url) return "";
-  if (url.startsWith("http")) return url;
-  return `${ASSET_BASE}${url}`;
-};
+const resolveAsset = (url) => buildAssetUrl(url, "");
 
 const isVideoLink = (url = "") => {
   const normalized = url.split("?")[0].toLowerCase();
@@ -2946,4 +2941,3 @@ function CollectionProductManager({ collection, products, onUpdate }) {
     </div>
   );
 }
-

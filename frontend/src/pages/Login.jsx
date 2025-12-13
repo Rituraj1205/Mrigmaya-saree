@@ -4,15 +4,10 @@ import toast from "react-hot-toast";
 import { AuthContext } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import BrandLoader from "../components/BrandLoader";
+import { API_BASE, buildAssetUrl } from "../utils/apiBase";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
-const ASSET_BASE = API_BASE.replace(/\/api\/?$/, "");
 const GOOGLE_START_URL = `${API_BASE}/auth/google`;
-const resolveAsset = (url, fallback = "") => {
-  if (!url) return fallback;
-  if (url.startsWith("http")) return url;
-  return `${ASSET_BASE}${url}`;
-};
+const resolveAsset = (url, fallback = "") => buildAssetUrl(url, fallback);
 
 const MODES = {
   OTP: "otp",

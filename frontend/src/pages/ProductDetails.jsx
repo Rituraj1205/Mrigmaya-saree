@@ -5,9 +5,8 @@ import axios from "../api/axios";
 import { CartContext } from "../context/CartContext";
 import { AuthContext } from "../context/AuthContext";
 import { setPageMeta } from "../utils/seo";
+import { buildAssetUrl } from "../utils/apiBase";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
-const ASSET_BASE = API_BASE.replace(/\/api\/?$/, "");
 const BLANK_IMG = "data:image/gif;base64,R0lGODlhAQABAAD/ACw=";
 
 const formatPrice = (value) =>
@@ -15,11 +14,7 @@ const formatPrice = (value) =>
     maximumFractionDigits: 0
   }).format(value || 0)}`;
 
-const normalizeImage = (src) => {
-  if (!src) return "";
-  if (src.startsWith("http")) return src;
-  return `${ASSET_BASE}${src}`;
-};
+const normalizeImage = (src) => buildAssetUrl(src, "");
 
 const resolveImage = (item) => {
   const raw = item?.images?.[0];
@@ -27,11 +22,7 @@ const resolveImage = (item) => {
   return normalizeImage(raw);
 };
 
-const resolveVideo = (src) => {
-  if (!src) return "";
-  if (src.startsWith("http")) return src;
-  return `${ASSET_BASE}${src}`;
-};
+const resolveVideo = (src) => buildAssetUrl(src, "");
 
 export default function ProductDetails() {
   const { id } = useParams();

@@ -1,9 +1,8 @@
 import { useCart } from "../context/CartContext";
 import { Link } from "react-router-dom";
 import { useEffect } from "react";
+import { buildAssetUrl } from "../utils/apiBase";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
-const ASSET_BASE = API_BASE.replace(/\/api\/?$/, "");
 const FALLBACK_IMAGE = "https://placehold.co/120x150?text=Saree";
 
 const formatPrice = (value) =>
@@ -15,12 +14,7 @@ const getTotal = (items = []) =>
     0
   );
 
-const resolveImage = (product) => {
-  const raw = product?.images?.[0];
-  if (!raw) return FALLBACK_IMAGE;
-  if (raw.startsWith("http")) return raw;
-  return `${ASSET_BASE}${raw}`;
-};
+const resolveImage = (product) => buildAssetUrl(product?.images?.[0], FALLBACK_IMAGE);
 
 export default function CartDrawer({ open, close }) {
   const { cart, increaseQty, decreaseQty, removeFromCart } = useCart();

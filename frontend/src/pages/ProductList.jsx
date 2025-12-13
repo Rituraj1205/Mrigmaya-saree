@@ -6,9 +6,8 @@ import { useLocation } from "react-router-dom";
 import { CartContext } from "../context/CartContext";
 import BrandLoader from "../components/BrandLoader";
 import { setPageMeta } from "../utils/seo";
+import { buildAssetUrl } from "../utils/apiBase";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
-const ASSET_BASE = API_BASE.replace(/\/api\/?$/, "");
 const BLANK_IMG = "data:image/gif;base64,R0lGODlhAQABAAD/ACw=";
 
 const sortOptions = [
@@ -34,14 +33,8 @@ const parseNumber = (value) => {
   return 0;
 };
 
-const resolveImage = (item, index = 0) => {
-  const raw = item?.images?.[index] || item?.images?.[0];
-  if (!raw) {
-    return BLANK_IMG;
-  }
-  if (raw.startsWith("http")) return raw;
-  return `${ASSET_BASE}${raw}`;
-};
+const resolveImage = (item, index = 0) =>
+  buildAssetUrl(item?.images?.[index] || item?.images?.[0], BLANK_IMG);
 
 export default function ProductList() {
   const location = useLocation();

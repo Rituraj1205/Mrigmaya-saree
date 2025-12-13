@@ -4,21 +4,15 @@ import toast from "react-hot-toast";
 import axios from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
 import { CartContext } from "../context/CartContext";
+import { buildAssetUrl } from "../utils/apiBase";
 
 const formatPrice = (value) =>
   `Rs. ${new Intl.NumberFormat("en-IN", {
     maximumFractionDigits: 0
   }).format(value || 0)}`;
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
-const ASSET_BASE = API_BASE.replace(/\/api\/?$/, "");
 const BLANK_IMG = "data:image/gif;base64,R0lGODlhAQABAAD/ACw=";
-const resolveImage = (product) => {
-  const raw = product?.images?.[0];
-  if (!raw) return BLANK_IMG;
-  if (raw.startsWith("http")) return raw;
-  return `${ASSET_BASE}${raw}`;
-};
+const resolveImage = (product) => buildAssetUrl(product?.images?.[0], BLANK_IMG);
 
 const statusLabels = {
   processing: "Processing",
