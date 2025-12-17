@@ -10,7 +10,6 @@ const GOOGLE_START_URL = `${API_BASE}/auth/google`;
 const resolveAsset = (url, fallback = "") => buildAssetUrl(url, fallback);
 
 const MODES = {
-  OTP: "otp",
   PASSWORD: "password",
   REGISTER: "register"
 };
@@ -66,11 +65,10 @@ const SideVisual = ({ item }) => {
 
 export default function Login() {
   const { login } = useContext(AuthContext);
-  const [mode, setMode] = useState(MODES.OTP);
-  const [step, setStep] = useState(1);
+  const [mode, setMode] = useState(MODES.PASSWORD);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [otp, setOtp] = useState("");
+  const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loginVisuals, setLoginVisuals] = useState([
@@ -78,11 +76,6 @@ export default function Login() {
     { title: "", subtitle: "", image: "" }
   ]);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    setStep(1);
-    setOtp("");
-  }, [mode]);
 
   useEffect(() => {
     axios
@@ -115,47 +108,6 @@ export default function Login() {
     return trimmed;
   };
 
-  const sendOtp = async () => {
-    const trimmed = validateEmail();
-    if (!trimmed) return;
-    try {
-      if (mode === MODES.REGISTER) {
-        if (!name.trim()) return toast.error("Please enter your name");
-        if (!password) return toast.error("Please set a password");
-        if (password.length < 6) return toast.error("Password must be at least 6 characters");
-        if (password !== confirmPassword) return toast.error("Passwords do not match");
-        await axios.post("/auth/register", {
-          email: trimmed,
-          name: name.trim(),
-          password
-        });
-      } else {
-        await axios.post("/auth/send-otp", { email: trimmed });
-      }
-      toast.success("OTP sent to your email (check inbox/spam)");
-      setStep(2);
-    } catch (err) {
-      toast.error(err.response?.data?.msg || "Failed to send OTP");
-    }
-  };
-
-  const verifyOtp = async () => {
-    const trimmed = validateEmail();
-    if (!trimmed) return;
-    try {
-      const res = await axios.post("/auth/verify-otp", {
-        email: trimmed,
-        otp,
-        name: name.trim() || undefined
-      });
-      login(res.data.token, res.data.user);
-      toast.success("Logged in");
-      navigate("/");
-    } catch (err) {
-      toast.error(err.response?.data?.msg || "Invalid OTP");
-    }
-  };
-
   const loginWithPassword = async () => {
     const trimmed = validateEmail();
     if (!trimmed) return;
@@ -170,9 +122,30 @@ export default function Login() {
     }
   };
 
+  const registerWithPassword = async () => {
+    const trimmed = validateEmail();
+    if (!trimmed) return;
+    if (!name.trim()) return toast.error("Please enter your name");
+    if (!password) return toast.error("Please set a password");
+    if (password.length < 6) return toast.error("Password must be at least 6 characters");
+    if (password !== confirmPassword) return toast.error("Passwords do not match");
+    try {
+      const res = await axios.post("/auth/register", {
+        email: trimmed,
+        name: name.trim(),
+        password,
+        mobile: mobile.trim() || undefined
+      });
+      login(res.data.token, res.data.user);
+      toast.success("Account created");
+      navigate("/");
+    } catch (err) {
+      toast.error(err.response?.data?.msg || "Could not create account");
+    }
+  };
+
   const tabs = [
-    { key: MODES.OTP, label: "Login with OTP" },
-    { key: MODES.PASSWORD, label: "Login with Password" },
+    { key: MODES.PASSWORD, label: "Login" },
     { key: MODES.REGISTER, label: "Create Account" }
   ];
 
@@ -222,67 +195,44 @@ export default function Login() {
                 </div>
               )}
 
-              {mode !== MODES.PASSWORD && step === 1 && (
+              {mode === MODES.REGISTER && (
                 <div className="space-y-3 mt-4">
-                  <h2 className="text-xl font-semibold text-[var(--ink)]">
-                    {mode === MODES.REGISTER ? "Create account (Email OTP)" : "Login with Email OTP"}
-                  </h2>
-                  <p className="text-sm text-[var(--muted)]">We will send a 6-digit code to your email.</p>
-                  {mode === MODES.REGISTER && (
-                    <div className="space-y-3">
-                      <LoginInput
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="Full name"
-                      />
-                      <LoginInput
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Create password"
-                      />
-                      <LoginInput
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Confirm password"
-                      />
-                    </div>
-                  )}
+                  <p className="text-sm text-[var(--muted)]">Create an account with email, phone, and password.</p>
+                  <LoginInput
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Full name"
+                  />
+                  <LoginInput
+                    type="tel"
+                    value={mobile}
+                    onChange={(e) => setMobile(e.target.value)}
+                    placeholder="Phone (optional)"
+                  />
                   <LoginInput
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
                   />
-                  <button
-                    onClick={sendOtp}
-                    className="w-full bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-[var(--surface)] font-semibold rounded-2xl py-3 shadow-md hover:shadow-lg transition"
-                  >
-                    Send OTP
-                  </button>
-                </div>
-              )}
-
-              {mode !== MODES.PASSWORD && step === 2 && (
-                <div className="space-y-3 mt-4">
-                  <h2 className="text-xl font-semibold text-[var(--ink)]">Enter OTP</h2>
-                  <p className="text-sm text-[var(--muted)]">OTP sent to {email}</p>
                   <LoginInput
-                    type="text"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    placeholder="6-digit code"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Create password (min 6 characters)"
+                  />
+                  <LoginInput
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm password"
                   />
                   <button
-                    onClick={verifyOtp}
+                    onClick={registerWithPassword}
                     className="w-full bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-[var(--surface)] font-semibold rounded-2xl py-3 shadow-md hover:shadow-lg transition"
                   >
-                    Verify &amp; {mode === MODES.REGISTER ? "Create account" : "Login"}
-                  </button>
-                  <button onClick={() => setStep(1)} className="text-sm text-[var(--primary)] mt-3 underline" type="button">
-                    Change email
+                    Create account
                   </button>
                 </div>
               )}

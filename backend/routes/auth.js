@@ -319,65 +319,42 @@ router.post("/verify-otp", async (req, res) => {
 });
 
 router.post("/register", async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, mobile } = req.body;
   const normalizedEmail = normalizeEmail(email);
+  const normalizedMobile = normalizeMobile(mobile);
   if (!name || !normalizedEmail || !password) {
     return res.status(400).json({ msg: "Name, email, password required" });
   }
+  if (password.length < 6) {
+    return res.status(400).json({ msg: "Password must be at least 6 characters" });
+  }
 
-  let user = await User.findOne({ email: normalizedEmail });
-  if (user && user.verified) {
+  const existingEmail = await User.findOne({ email: normalizedEmail });
+  if (existingEmail) {
     return res.status(400).json({ msg: "Account already exists. Login instead." });
+  }
+  if (normalizedMobile) {
+    const existingMobile = await User.findOne({ mobile: normalizedMobile });
+    if (existingMobile) {
+      return res.status(400).json({ msg: "Mobile already linked to another account" });
+    }
   }
 
   const passwordHash = await hashPassword(password);
-  const otp = generateOTP();
-  const otpExpires = Date.now() + 5 * 60 * 1000;
-
-  if (!user) {
-    user = await User.create({
-      name: name.trim(),
-      email: normalizedEmail,
-      passwordHash,
-      otp,
-      otpExpires,
-      verified: false
-    });
-  } else {
-    user.name = name.trim();
-    user.passwordHash = passwordHash;
-    user.otp = otp;
-    user.otpExpires = otpExpires;
-    user.verified = false;
-    await user.save();
+  const userPayload = {
+    name: name.trim(),
+    email: normalizedEmail,
+    mobile: normalizedMobile || undefined,
+    passwordHash,
+    verified: true
+  };
+  if (isAdminEmail(normalizedEmail) || isAdminMobile(normalizedMobile)) {
+    userPayload.role = "admin";
   }
 
-  try {
-    const result = await sendEmailOtp(normalizedEmail, otp);
-    if (!result.ok) {
-      if (canReturnDevOtp(user?.role)) {
-        return res.json({
-          msg: "OTP sent (development mode)",
-          devOtp: result.devOtp || otp,
-          note: result.error
-        });
-      }
-      return res.status(500).json({ msg: "Unable to send OTP. Try again later.", error: result.error });
-    }
-  } catch (err) {
-    console.error("Register send OTP error:", err.message);
-    if (canReturnDevOtp(user?.role)) {
-      console.log("DEV OTP (register fallback):", user.otp);
-      return res.json({
-        msg: "OTP sent (development mode)",
-        devOtp: user.otp,
-        note: err.message
-      });
-    }
-    return res.status(500).json({ msg: "Unable to send OTP. Try again later." });
-  }
-
-  res.json({ msg: "OTP sent to email. Please verify to complete registration." });
+  const user = await User.create(userPayload);
+  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+  res.json({ token, user });
 });
 
 router.post("/login-password", async (req, res) => {
@@ -388,10 +365,14 @@ router.post("/login-password", async (req, res) => {
   }
   const user = await User.findOne({ email: normalizedEmail });
   if (!user) return res.status(400).json({ msg: "User not found" });
-  if (!user.verified) return res.status(400).json({ msg: "Please verify your email via OTP first" });
 
   const ok = await comparePassword(password, user.passwordHash);
   if (!ok) return res.status(400).json({ msg: "Invalid credentials" });
+
+  if (!user.verified) {
+    user.verified = true;
+    await user.save();
+  }
 
   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
   res.json({ token, user });
