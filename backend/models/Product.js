@@ -7,6 +7,8 @@ const productSchema = new mongoose.Schema({
   categoryRef: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
   fabric: String,
   color: String,
+  amazonLink: String,
+  flipkartLink: String,
   price: Number,
   discountPrice: Number,
   stock: Number,

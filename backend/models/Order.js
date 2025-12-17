@@ -36,6 +36,7 @@ const orderSchema = new mongoose.Schema({
   razorpayPaymentId: String,
   razorpaySignature: String,
   shippingAddress: Object,
+  trackingLink: String,
   trackingNumber: String,
   carrier: String,
   createdAt: { type: Date, default: Date.now }

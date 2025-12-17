@@ -146,6 +146,28 @@ export default function ProductDetails() {
   const avgRating =
     displayReviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) /
     (displayReviews.length || 1);
+  const flipkartLogoData =
+    "data:image/svg+xml;utf8," +
+    encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" aria-label="Flipkart logo"><rect x="24" y="28" width="152" height="144" rx="16" fill="#ffd426"/><path d="M46 52h108c5 0 9 4 9 9v13H37V61c0-5 4-9 9-9z" fill="#fbc02d"/><path d="M62 64c12 16 32 16 44 0" fill="none" stroke="#e53935" stroke-width="6" stroke-linecap="round"/><path d="M106 64c12 16 32 16 44 0" fill="none" stroke="#00897b" stroke-width="6" stroke-linecap="round"/><circle cx="64" cy="54" r="4" fill="#6d4c41"/><circle cx="136" cy="54" r="4" fill="#6d4c41"/><path d="M82 96h25c10 0 14 6 12 16l-2 10c-1 6-5 10-10 12l9 30h-20l-7-26h-6l-6 26H58z" fill="#1976d2"/><path d="M105 110h9c2 0 3 2 3 4l-1 6c0 2-2 4-4 4h-9z" fill="#bbdefb"/></svg>'
+    );
+
+  const marketplaceLinks = [
+    {
+      label: "Amazon",
+      href: product.amazonLink,
+      bg: "#232f3e",
+      text: "#ffffff",
+      logo: "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg"
+    },
+    {
+      label: "Flipkart",
+      href: product.flipkartLink,
+      bg: "#2874f0",
+      text: "#ffffff",
+      logo: flipkartLogoData
+    }
+  ].filter((link) => link.href);
   const relatedProducts = related
     .filter((item) => item._id !== product._id)
     .filter((item) => {
@@ -314,6 +336,31 @@ export default function ProductDetails() {
                   Share on WhatsApp
                 </a>
               </div>
+              {marketplaceLinks.length > 0 && (
+                <div className="flex flex-wrap gap-3 pt-2">
+                  {marketplaceLinks.map((link) => (
+                    <a
+                      key={link.label}
+                      href={link.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold shadow-sm hover:-translate-y-0.5 transition"
+                      style={{ background: link.bg, color: link.text }}
+                    >
+                      <img
+                        src={link.logo}
+                        alt={`${link.label} logo`}
+                        className="h-6 w-auto object-contain"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                      <span className="text-white tracking-tight">{link.label}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="space-y-2 text-sm text-gray-700 bg-white rounded-3xl p-4 shadow">
               {product.description && <p className="text-gray-600">{product.description}</p>}

@@ -402,9 +402,11 @@ router.post("/verify", auth, async (req, res) => {
 
 router.patch("/:id", auth, adminOnly, async (req, res) => {
   const updates = {};
-  ["status", "paymentStatus", "customerNote", "trackingNumber", "carrier"].forEach((key) => {
-    if (req.body[key] !== undefined) updates[key] = req.body[key];
-  });
+  ["status", "paymentStatus", "customerNote", "trackingNumber", "trackingLink", "carrier"].forEach(
+    (key) => {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+  );
   if (req.body.returnStatus && returnStatusOptions.includes(req.body.returnStatus)) {
     updates.returnStatus = req.body.returnStatus;
     updates.returnRequested = req.body.returnStatus !== "none";
@@ -418,7 +420,8 @@ router.patch("/:id", auth, adminOnly, async (req, res) => {
   if (!order) return res.status(404).json({ msg: "Order not found" });
   const statusText = statusLabels[order.status] || order.status;
   const paymentText = order.paymentStatus;
-  const trackingText = order.trackingNumber ? `Tracking: ${order.trackingNumber}` : "";
+  const trackingValue = order.trackingLink || order.trackingNumber || "";
+  const trackingText = trackingValue ? `Tracking: ${trackingValue}` : "";
   const shortId = String(order._id || "").slice(-6);
   await sendWhatsAppUpdate(
     order,

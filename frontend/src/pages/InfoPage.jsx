@@ -38,9 +38,13 @@ const pages = {
   "privacy-policy": {
     title: "Privacy policy",
     sections: [
-      "We only collect information needed to fulfill your orders and improve your experience.",
-      "Your data is not sold to third parties. Payment information is processed via secure gateways.",
-      "You can request data deletion or updates by writing to care@sudathi.com."
+      "What we collect: name, email, and profile image when you sign in with Google; contact and shipping details you provide at checkout; and order history. We do not collect or store your card details—payments are handled by our PCI-compliant gateway.",
+      "How we use it: to create and secure your account, show your profile, process and deliver orders, provide support, and send essential service updates. We do not sell your data.",
+      "Storage and security: data is stored in our database with access limited to authorized staff. All traffic is served over HTTPS.",
+      "Sharing: only with service providers needed to run the app (for example, payments, hosting, analytics, delivery partners). We do not share data with advertisers.",
+      "Your controls: you can request correction or deletion, or ask us to disconnect your Google account by emailing care@sudathi.com. You can also revoke Google access from your Google Account settings.",
+      "Data retention: we retain account and order data for as long as your account is active or as required for legal, tax, and fraud-prevention purposes, then delete or anonymize it.",
+      "Contact: care@sudathi.com for any questions about data use or this policy."
     ]
   },
   "terms-of-service": {

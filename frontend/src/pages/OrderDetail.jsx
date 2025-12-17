@@ -42,9 +42,10 @@ const paymentLabels = {
   cancelled: "Cancelled"
 };
 
-const trackingUrl = (trackingNumber) => {
-  if (!trackingNumber) return null;
-  if (trackingNumber.startsWith("http")) return trackingNumber;
+const trackingUrl = (order) => {
+  if (!order) return null;
+  if (order.trackingLink && order.trackingLink.startsWith("http")) return order.trackingLink;
+  if (order.trackingNumber && order.trackingNumber.startsWith("http")) return order.trackingNumber;
   return null;
 };
 
@@ -95,7 +96,8 @@ export default function OrderDetail() {
 
   if (!token) return null;
 
-  const trackLink = trackingUrl(order?.trackingNumber);
+  const trackLink = trackingUrl(order);
+  const trackingLabel = order?.trackingLink || order?.trackingNumber;
 
   const requestReturn = async () => {
     if (!returnReason.trim()) {
@@ -225,11 +227,14 @@ export default function OrderDetail() {
                     Method: {order.paymentMethod || "COD"} • Status:{" "}
                     {paymentLabels[order.paymentStatus] || order.paymentStatus}
                   </p>
-                  {(order.trackingNumber || order.carrier) && (
+                  {(trackingLabel || order.carrier) && (
                     <div className="mt-2 space-y-1">
                       <p className="text-xs uppercase tracking-[0.3em] text-gray-400">Tracking</p>
                       <div className="flex items-center flex-wrap gap-3">
-                        {trackLink ? (
+                        {trackingLabel && (
+                          <span className="text-sm text-gray-700 break-all">{trackingLabel}</span>
+                        )}
+                        {trackLink && (
                           <a
                             className="text-sm text-pink-600 underline"
                             href={trackLink}
@@ -238,8 +243,6 @@ export default function OrderDetail() {
                           >
                             Track shipment
                           </a>
-                        ) : (
-                          <span className="text-sm text-gray-700">{order.trackingNumber}</span>
                         )}
                         {order.carrier && (
                           <span className="text-xs text-gray-500 border border-gray-200 rounded-full px-3 py-1">

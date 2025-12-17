@@ -163,9 +163,9 @@ const HeroBanner = ({ slides = [] }) => {
     Boolean(active?.badge || active?.tag);
 
   return (
-    <section className="bg-[var(--surface-muted)] py-10">
-      <div className="max-w-6xl mx-auto px-4 lg:px-0">
-        <div className="relative rounded-[40px] overflow-hidden aspect-[16/9] min-h-[420px] shadow-2xl">
+    <section className="bg-[var(--surface-muted)] py-8 sm:py-10">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-0">
+        <div className="relative rounded-[28px] sm:rounded-[40px] overflow-hidden aspect-[4/5] sm:aspect-[16/9] min-h-[280px] sm:min-h-[420px] shadow-2xl">
           {normalizedSlides.map((slide, index) => {
             const cover = slide.heroImage;
             const video = slide.heroVideo;
@@ -195,7 +195,7 @@ const HeroBanner = ({ slides = [] }) => {
                   <img
                     src={cover}
                     alt={slide.title || "Hero slide"}
-                    className="w-full h-full object-cover object-top bg-[var(--surface)]"
+                    className="w-full h-full object-contain sm:object-cover object-center bg-[var(--surface)]"
                     loading={isActive ? "eager" : "lazy"}
                     decoding="async"
                     fetchpriority={isActive ? "high" : "auto"}
@@ -422,7 +422,7 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
 
         {heroImage && (
           <div
-            className={`relative rounded-[40px] overflow-hidden min-h-[320px] shadow-xl ${
+            className={`relative rounded-[28px] sm:rounded-[40px] overflow-hidden aspect-[4/5] sm:aspect-[21/9] min-h-[260px] sm:min-h-[320px] shadow-xl ${
               railLink ? "cursor-pointer" : ""
             }`}
             onClick={() => railLink && navigate(railLink)}
@@ -439,7 +439,7 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
             <img
               src={heroImage}
               alt={collection?.title}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain sm:object-cover bg-[var(--surface-muted)]"
               loading="lazy"
               decoding="async"
             />
@@ -881,7 +881,7 @@ export default function Home() {
       });
 
   return (
-    <div className="bg-[var(--bg)] text-[var(--ink)]">
+    <div className="bg-[var(--bg)] text-[var(--ink)] home-shell">
       {heroSlidesToShow.length > 0 && <HeroBanner slides={heroSlidesToShow} />}
       <USPStrip items={uspItems.length ? uspItems : uspFallback} />
       {homeError && (

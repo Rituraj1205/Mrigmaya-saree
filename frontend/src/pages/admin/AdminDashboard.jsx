@@ -19,6 +19,8 @@ const emptyProduct = {
   categoryRef: "",
   fabric: "",
   color: "",
+  amazonLink: "",
+  flipkartLink: "",
   price: "",
   discountPrice: "",
   stock: "",
@@ -896,6 +898,8 @@ const orderStatusOptions = [
       if (productForm.discountPrice)
         formData.append("discountPrice", productForm.discountPrice);
       formData.append("stock", productForm.stock || 0);
+      if (productForm.amazonLink) formData.append("amazonLink", productForm.amazonLink.trim());
+      if (productForm.flipkartLink) formData.append("flipkartLink", productForm.flipkartLink.trim());
       formData.append("images", productForm.images);
       if (productForm.video) formData.append("video", productForm.video);
       formData.append("collections", productForm.collectionIds.join(","));
@@ -944,6 +948,8 @@ const orderStatusOptions = [
       categoryRef: product.categoryRef?._id || product.categoryRef || "",
       fabric: product.fabric || "",
       color: product.color || "",
+      amazonLink: product.amazonLink || "",
+      flipkartLink: product.flipkartLink || "",
       price: product.price || "",
       discountPrice: product.discountPrice || "",
       stock: product.stock || "",
@@ -1349,6 +1355,7 @@ const orderStatusOptions = [
                     <th>Amount</th>
                     <th>Payment</th>
                     <th>Status</th>
+                    <th>Tracking</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -1419,6 +1426,36 @@ const orderStatusOptions = [
                             </option>
                           ))}
                         </select>
+                      </td>
+                      <td className="text-xs text-gray-600">
+                        <div className="space-y-1">
+                          {(order.trackingLink || order.trackingNumber) && (
+                            <a
+                              href={
+                                (order.trackingLink || order.trackingNumber || "").startsWith("http")
+                                  ? order.trackingLink || order.trackingNumber
+                                  : undefined
+                              }
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[11px] text-pink-600 underline"
+                            >
+                              Open tracking
+                            </a>
+                          )}
+                          <input
+                            type="text"
+                            className="border rounded-lg px-2 py-1 w-full"
+                            placeholder="Paste tracking URL"
+                            defaultValue={order.trackingLink || ""}
+                            onBlur={(e) =>
+                              handleOrderUpdate(order._id, { trackingLink: e.target.value.trim() })
+                            }
+                          />
+                          {!order.trackingLink && order.trackingNumber && (
+                            <p className="text-[11px] text-gray-500">Current: {order.trackingNumber}</p>
+                          )}
+                        </div>
                       </td>
                       <td className="text-right space-y-2">
                         {order.paymentMethod === "UPI" && order.upiIntent && (
@@ -1618,6 +1655,20 @@ const orderStatusOptions = [
               onChange={(e) => setProductForm({ ...productForm, color: e.target.value })}
               placeholder="Color tone"
               className="border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-pink-100"
+            />
+            <input
+              value={productForm.amazonLink}
+              onChange={(e) => setProductForm({ ...productForm, amazonLink: e.target.value })}
+              placeholder="Amazon product link (optional)"
+              className="border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-pink-100"
+              type="url"
+            />
+            <input
+              value={productForm.flipkartLink}
+              onChange={(e) => setProductForm({ ...productForm, flipkartLink: e.target.value })}
+              placeholder="Flipkart product link (optional)"
+              className="border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-pink-100"
+              type="url"
             />
             <input
               value={productForm.price}

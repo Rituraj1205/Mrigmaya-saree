@@ -53,6 +53,8 @@ const buildProductPayload = async (req) => {
     video: req.body.video,
     fabric: req.body.fabric,
     color: req.body.color,
+    amazonLink: req.body.amazonLink,
+    flipkartLink: req.body.flipkartLink,
     price: coerceNumber(req.body.price),
     discountPrice: coerceNumber(req.body.discountPrice),
     stock: coerceNumber(req.body.stock)

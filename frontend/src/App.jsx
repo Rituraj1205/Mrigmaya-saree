@@ -2,20 +2,22 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
 import Navbar from "./components/Navbar";
-import Home from "./pages/Home";
-import ProductList from "./pages/ProductList";
-import ProductDetails from "./pages/ProductDetails";
-import Cart from "./pages/Cart";
-import Checkout from "./pages/Checkout";
-import OrderSuccess from "./pages/OrderSuccess";
-import Orders from "./pages/Orders";
-import OrderDetail from "./pages/OrderDetail";
-import Login from "./pages/Login";
-import InfoPage from "./pages/InfoPage";
-import GoogleAuth from "./pages/GoogleAuth";
-import AdminLogin from "./pages/admin/AdminLogin";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import CollectionShowcase from "./pages/CollectionShowcase";
+import { lazy, Suspense } from "react";
+
+const Home = lazy(() => import("./pages/Home"));
+const ProductList = lazy(() => import("./pages/ProductList"));
+const ProductDetails = lazy(() => import("./pages/ProductDetails"));
+const CollectionShowcase = lazy(() => import("./pages/CollectionShowcase"));
+const Cart = lazy(() => import("./pages/Cart"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const OrderSuccess = lazy(() => import("./pages/OrderSuccess"));
+const Orders = lazy(() => import("./pages/Orders"));
+const OrderDetail = lazy(() => import("./pages/OrderDetail"));
+const Login = lazy(() => import("./pages/Login"));
+const InfoPage = lazy(() => import("./pages/InfoPage"));
+const GoogleAuth = lazy(() => import("./pages/GoogleAuth"));
+const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
@@ -25,7 +27,7 @@ function AppRoutes() {
   const hideNavbar = location.pathname.startsWith("/admin");
 
   return (
-    <>
+    <Suspense fallback={<div className="p-6 text-sm text-gray-600">Loading...</div>}>
       {!hideNavbar && <Navbar />}
       <Toaster />
       <Routes>
@@ -44,7 +46,7 @@ function AppRoutes() {
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminDashboard />} />
       </Routes>
-    </>
+    </Suspense>
   );
 }
 
