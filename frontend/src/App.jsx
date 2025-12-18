@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
 import Navbar from "./components/Navbar";
+import SupportFooter from "./components/SupportFooter";
 import { lazy, Suspense } from "react";
 
 const Home = lazy(() => import("./pages/Home"));
@@ -25,6 +26,7 @@ import { CartProvider } from "./context/CartContext";
 function AppRoutes() {
   const location = useLocation();
   const hideNavbar = location.pathname.startsWith("/admin");
+  const hideFooter = hideNavbar;
 
   return (
     <Suspense fallback={<div className="p-6 text-sm text-gray-600">Loading...</div>}>
@@ -46,6 +48,7 @@ function AppRoutes() {
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminDashboard />} />
       </Routes>
+      {!hideFooter && <SupportFooter />}
     </Suspense>
   );
 }

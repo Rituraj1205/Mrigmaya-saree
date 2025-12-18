@@ -122,6 +122,8 @@ export default function ProductList() {
     const ids = params.get("ids");
     const collectionSlug = params.get("collectionSlug");
     const moodId = params.get("moodId");
+    const searchParam = params.get("search") || "";
+    setSearch(searchParam);
     if (ids) {
       setSelectedIds(
         ids

@@ -251,11 +251,11 @@ export default function Checkout() {
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
+    <div className="p-6 max-w-3xl mx-auto space-y-6 bg-[var(--bg)] text-[var(--ink)]">
       <header>
-        <p className="text-xs uppercase tracking-[0.4em] text-gray-400">Checkout</p>
-        <h1 className="text-3xl font-semibold text-gray-900">Ready to place order?</h1>
-        <p className="text-gray-500 mt-2">
+        <p className="text-xs uppercase tracking-[0.4em] text-[var(--accent)]/80">Checkout</p>
+        <h1 className="text-3xl font-semibold text-[var(--primary)]">Ready to place order?</h1>
+        <p className="text-[var(--ink)]/70 mt-2">
           Select a payment option and confirm. You will receive order updates on WhatsApp/SMS.
         </p>
         <div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold">
@@ -264,8 +264,8 @@ export default function Checkout() {
               key={step}
               className={`flex items-center gap-2 px-3 py-2 rounded-full border ${
                 idx === 0
-                  ? "bg-[var(--primary-soft)]/40 border-[var(--primary-soft)] text-[var(--ink)]"
-                  : "border-[var(--border)] text-[var(--muted)]"
+                  ? "bg-[var(--primary-soft)]/70 border-[var(--primary-soft)] text-[var(--ink)]"
+                  : "border-[var(--border)] text-[var(--muted)] bg-white/70"
               }`}
             >
               <span

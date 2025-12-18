@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import axios from "../api/axios";
 import { AuthContext } from "./AuthContext";
+import toast from "react-hot-toast";
 
 export const CartContext = createContext();
 
@@ -34,15 +35,16 @@ export function CartProvider({ children }) {
     fetchCart();
   }, [token]);
 
-  const mutateCart = async (url, body) => {
+  const mutateCart = async (url, body, successMsg) => {
     if (!token) return (window.location.href = "/login");
     const res = await axios.post(url, body, authConfig);
     setCart(shapeCart(res.data));
+    if (successMsg) toast.success(successMsg);
     return res.data;
   };
 
   const addToCart = (productId) =>
-    mutateCart("/cart/add", { productId, quantity: 1 });
+    mutateCart("/cart/add", { productId, quantity: 1 }, "Added to cart");
 
   const increaseQty = (productId) => {
     const target = cart.find((item) => item.product?._id === productId);
@@ -50,7 +52,7 @@ export function CartProvider({ children }) {
     return mutateCart("/cart/update", {
       productId,
       quantity: target.quantity + 1
-    });
+    }, "Updated quantity");
   };
 
   const decreaseQty = (productId) => {
@@ -58,11 +60,11 @@ export function CartProvider({ children }) {
     if (!target) return;
     const nextQty = target.quantity - 1;
     if (nextQty < 1) return removeFromCart(productId);
-    return mutateCart("/cart/update", { productId, quantity: nextQty });
+    return mutateCart("/cart/update", { productId, quantity: nextQty }, "Updated quantity");
   };
 
   const removeFromCart = (productId) =>
-    mutateCart("/cart/remove", { productId });
+    mutateCart("/cart/remove", { productId }, "Removed from cart");
 
   return (
     <CartContext.Provider
