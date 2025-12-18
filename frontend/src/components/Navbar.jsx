@@ -81,7 +81,7 @@ export default function Navbar() {
   return (
     <>
       <nav className="main-nav relative z-40">
-        <div className="nav-inner nav-hero-shell px-4 sm:px-5 py-4 lg:py-6">
+        <div className="nav-inner nav-hero-shell px-3 sm:px-4 py-1 lg:py-3">
           <Link to="/" className="brand-wrap brand-wrap--stacked nav-hero__brand">
             <span className="brand-mark">
               <img src={logo} alt="Mrigmaya logo" className="brand-logo" />

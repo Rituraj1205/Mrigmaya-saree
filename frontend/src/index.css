@@ -515,6 +515,7 @@ h4 {
   border: none;
   isolation: unset;
   margin-right: 0;
+  transform: translateY(-13%);
 }
 
 .brand-mark::before {
@@ -537,7 +538,7 @@ h4 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 0;
   text-align: center;
   color: #f6e6c9;
   text-shadow:
@@ -560,20 +561,21 @@ h4 {
 }
 
 .brand-tagline {
-  margin-top: 4px;
+  margin-top: -85px;
   font-family: "Sora", "Manrope", system-ui, sans-serif;
   font-size: 0.95rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: rgba(248, 230, 200, 0.8);
   text-align: center;
+  line-height: 1.05;
 }
 
 .brand-wrap--stacked {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 0;
   flex-direction: column;
 }
 
@@ -606,7 +608,7 @@ h4 {
   }
 
   .brand-tagline {
-    font-size: 1rem;
+    font-size: 0.98rem;
   }
 
   .brand-wrap {
@@ -614,11 +616,6 @@ h4 {
     left: 0;
     top: 0;
     margin-right: 0;
-  }
-
-  .brand-wrap--stacked {
-    flex-direction: row;
-    gap: 16px;
   }
 
   .brand-wrap::after {
@@ -638,10 +635,10 @@ h4 {
     "links"
     "search";
   grid-template-columns: 1fr;
-  gap: 14px;
+  gap: 8px;
   max-width: 1100px;
   margin: 0 auto;
-  align-items: center;
+  align-items: flex-start;
   justify-items: center;
 }
 
@@ -656,12 +653,14 @@ h4 {
 
 .nav-hero__links {
   grid-area: links;
+  margin-top: -10px;
 }
 
 .nav-hero__search {
   grid-area: search;
   width: 100%;
   position: relative;
+  margin-top: -8px;
 }
 
 .nav-links {
@@ -682,8 +681,8 @@ h4 {
       "brand links links"
       "search search search";
     grid-template-columns: 0.9fr 1.1fr 0.9fr;
-    gap: 18px;
-    padding-inline: 22px;
+    gap: 10px;
+    padding-inline: 18px;
   }
 
   .nav-links--hero {
@@ -694,7 +693,7 @@ h4 {
 @media (min-width: 1024px) {
   .nav-hero-shell {
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 20px;
+    gap: 16px;
   }
 }
 
@@ -1081,7 +1080,7 @@ h4 {
   gap: 10px;
   width: 100%;
   max-width: 900px;
-  padding: 6px 8px 6px 18px;
+  padding: 4px 8px 4px 16px;
   border-radius: 999px;
   background:
     radial-gradient(circle at 18% 20%, rgba(255, 215, 150, 0.14), transparent 38%),
@@ -1099,7 +1098,7 @@ h4 {
   background: transparent;
   border: none;
   border-radius: 999px;
-  padding: 12px 14px;
+  padding: 10px 14px;
   color: #f8e6c6;
   font-size: 1.02rem;
   font-weight: 500;
@@ -1217,6 +1216,7 @@ h4 {
     width: 255px;
     height: 255px;
     border-radius: 0;
+    transform: translateY(-13%);
   }
   .brand-logo {
     width: 255px;
@@ -1227,8 +1227,8 @@ h4 {
     animation: logoPulse 4s ease-in-out infinite;
   }
   .brand-tagline {
-    font-size: 0.9rem;
-    letter-spacing: 0.14em;
+    font-size: 0.86rem;
+    letter-spacing: 0.13em;
   }
   .brand-name {
     font-size: 1.04rem;
@@ -1243,7 +1243,7 @@ h4 {
   position: relative;
   width: 100%;
   max-width: 1180px;
-  margin: 16px auto 22px;
+  margin: 0 auto 10px;
   border-radius: 26px;
   background:
     radial-gradient(circle at 12% 18%, rgba(255, 214, 150, 0.18), transparent 40%),
@@ -1256,21 +1256,13 @@ h4 {
     0 22px 60px rgba(0, 0, 0, 0.48),
     inset 0 1px 0 rgba(255, 230, 180, 0.12),
     inset 0 -1px 0 rgba(0, 0, 0, 0.35);
-  min-height: 320px;
-  padding: 22px 0 28px;
+  min-height: 175px;
+  padding: 0 0 8px;
   overflow: visible;
   isolation: isolate;
 }
 .main-nav::before {
-  content: "";
-  position: absolute;
-  inset: 12px;
-  border: 1px solid rgba(255, 200, 90, 0.26);
-  border-radius: 24px;
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.42),
-    0 0 22px rgba(255, 200, 90, 0.22);
-  pointer-events: none;
+  content: none;
 }
 .main-nav::after {
   content: "";
