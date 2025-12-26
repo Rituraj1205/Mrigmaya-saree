@@ -245,7 +245,7 @@ export default function ProductDetails() {
                 <img
                   src={activeImage}
                   alt={product.name}
-                  className="w-full h-[520px] object-cover cursor-zoom-in"
+                  className="w-full max-h-[520px] object-contain bg-white cursor-zoom-in"
                   loading="eager"
                   fetchpriority="high"
                   decoding="async"
@@ -288,7 +288,7 @@ export default function ProductDetails() {
                     <img
                       src={image}
                       alt={product.name}
-                      className="w-full h-full object-cover cursor-zoom-in"
+                      className="w-full h-full object-contain bg-white cursor-zoom-in"
                       loading="lazy"
                       decoding="async"
                       onClick={() => {
