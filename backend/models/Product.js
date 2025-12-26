@@ -12,6 +12,8 @@ const productSchema = new mongoose.Schema({
   price: Number,
   discountPrice: Number,
   stock: Number,
+  colors: { type: [String], default: [] },
+  sizes: { type: [String], default: [] },
   images: [String],
   video: String,
   collections: [{ type: mongoose.Schema.Types.ObjectId, ref: "Collection" }],

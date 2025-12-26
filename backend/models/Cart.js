@@ -2,7 +2,10 @@ import mongoose from "mongoose";
 
 const cartItemSchema = new mongoose.Schema({
   product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
-  quantity: Number
+  quantity: Number,
+  selectedColor: String,
+  selectedSize: String,
+  variantKey: String
 });
 
 const cartSchema = new mongoose.Schema({

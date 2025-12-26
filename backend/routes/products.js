@@ -52,7 +52,6 @@ const buildProductPayload = async (req) => {
     category: req.body.category,
     video: req.body.video,
     fabric: req.body.fabric,
-    color: req.body.color,
     amazonLink: req.body.amazonLink,
     flipkartLink: req.body.flipkartLink,
     price: coerceNumber(req.body.price),
@@ -63,6 +62,22 @@ const buildProductPayload = async (req) => {
   Object.keys(payload).forEach((key) => {
     if (payload[key] === undefined) delete payload[key];
   });
+
+  if (req.body.colors !== undefined || req.body.color !== undefined) {
+    const colorsFromBody = toArray(req.body.colors);
+    const fallbackColor = req.body.color;
+    const colors = colorsFromBody.length
+      ? colorsFromBody
+      : fallbackColor
+        ? [fallbackColor].filter(Boolean)
+        : [];
+    payload.colors = colors;
+    payload.color = fallbackColor || colors[0] || "";
+  }
+
+  if (req.body.sizes !== undefined) {
+    payload.sizes = toArray(req.body.sizes);
+  }
 
   const imagesFromBody = toArray(req.body.images);
   const combinedImages = [];
@@ -140,7 +155,9 @@ router.get("/", async (req, res) => {
     Product.find()
       .populate("collections", "title slug")
       .populate("categoryRef", "name slug"),
-    includeInactive ? Promise.resolve([]) : Category.find({ active: true }).select("name slug")
+    includeInactive
+      ? Promise.resolve([])
+      : Category.find({ active: true }).select("name slug active")
   ]);
 
   if (includeInactive) {

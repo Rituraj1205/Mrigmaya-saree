@@ -39,6 +39,9 @@ export default function ProductDetails() {
   const [zoomOpen, setZoomOpen] = useState(false);
   const [zoomScale, setZoomScale] = useState(1.2);
   const [zoomSrc, setZoomSrc] = useState("");
+  const [selectedColor, setSelectedColor] = useState("");
+  const [selectedSize, setSelectedSize] = useState("");
+  const inStock = (product?.stock || 0) > 0;
 
   useEffect(() => {
     let mounted = true;
@@ -49,6 +52,10 @@ export default function ProductDetails() {
       .then((res) => {
         if (!mounted) return;
         setProduct(res.data);
+        const colors = normalizedColors(res.data);
+        const sizes = normalizedSizes(res.data);
+        setSelectedColor(colors[0] || "");
+        setSelectedSize(sizes[0] || "");
         setActiveIndex(0);
         const incomingReviews = Array.isArray(res.data?.reviews) ? res.data.reviews : [];
         setReviews(incomingReviews);
@@ -68,7 +75,7 @@ export default function ProductDetails() {
 
   useEffect(() => {
     axios
-      .get("/products")
+      .get("/products?includeInactive=true")
       .then((res) => {
         const all = Array.isArray(res.data) ? res.data : res.data?.products || [];
         setRelated(all);
@@ -179,9 +186,24 @@ export default function ProductDetails() {
     .slice(0, 6);
 
   const handleAddToCart = async (redirect) => {
+    const colors = normalizedColors(product);
+    const sizes = normalizedSizes(product);
+    const needsSize = sizes.length > 0;
+    const chosenColor = selectedColor || colors[0] || "";
+    const chosenSize = selectedSize || (needsSize ? sizes[0] : "");
+    if (needsSize && !chosenSize) {
+      toast.error("Select a size");
+      return;
+    }
+    if (!inStock) {
+      toast.error("This item is out of stock");
+      return;
+    }
+    setSelectedColor(chosenColor);
+    setSelectedSize(chosenSize);
     setAdding(true);
     try {
-      await addToCart(product._id, 1);
+      await addToCart(product._id, chosenColor, chosenSize);
       if (redirect) {
         navigate("/checkout");
       }
@@ -369,31 +391,81 @@ export default function ProductDetails() {
                   <span className="font-semibold">Fabric:</span> {product.fabric}
                 </p>
               )}
-              {product.color && (
-                <p>
-                  <span className="font-semibold">Color:</span> {product.color}
-                </p>
+              <p className="font-semibold">Colors:</p>
+              {normalizedColors(product).length > 0 && (
+                <div className="space-y-1">
+                  <div className="flex flex-wrap gap-3">
+                    {normalizedColors(product).map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setSelectedColor(color)}
+                        className={`px-3 py-2 rounded-full border text-sm flex items-center gap-2 shadow-sm transition ${
+                          selectedColor === color
+                            ? "border-[var(--primary)] ring-2 ring-[var(--primary)]/20 bg-white"
+                            : "border-gray-200 bg-[#fdfbf8]"
+                        }`}
+                        style={{
+                          minWidth: 88
+                        }}
+                      >
+                        <span
+                          className="inline-block w-5 h-5 rounded-full border"
+                          style={{
+                            background: colorSwatch(color),
+                            borderColor: "rgba(0,0,0,0.2)",
+                            boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.45)"
+                          }}
+                          title={color}
+                        />
+                        <span className="font-semibold capitalize truncate">{color}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
-              {product.stock && (
-                <p>
-                  <span className="font-semibold">Stock:</span> {product.stock}
-                </p>
+              {normalizedSizes(product).length > 0 && (
+                <div className="space-y-1">
+                  <p className="font-semibold">Sizes:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {normalizedSizes(product).map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setSelectedSize(size)}
+                        className={`px-3 py-1 rounded-full border text-xs font-semibold transition ${
+                          selectedSize === size
+                            ? "bg-indigo-600 text-white border-indigo-600"
+                            : "bg-indigo-50 text-indigo-800 border-indigo-100"
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
+              <p className="font-semibold">
+                Stock:{" "}
+                <span className={inStock ? "text-gray-700 font-normal" : "text-red-600 font-semibold"}>
+                  {inStock ? product.stock : "Out of stock"}
+                </span>
+              </p>
             </div>
           <div className="space-y-3">
             <button
               onClick={() => handleAddToCart(false)}
               className="w-full bg-gray-900 text-white py-3 rounded-full font-semibold disabled:opacity-60"
-              disabled={adding}
+              disabled={adding || !inStock}
             >
-              {adding ? "Adding..." : "Add to cart"}
+              {adding ? "Adding..." : inStock ? "Add to cart" : "Out of stock"}
             </button>
             <button
               onClick={() => handleAddToCart(true)}
               className="w-full bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white py-3 rounded-full font-semibold disabled:opacity-60"
-              disabled={adding}
+              disabled={adding || !inStock}
             >
-              {adding ? "Please wait..." : "Buy now"}
+              {adding ? "Please wait..." : inStock ? "Buy now" : "Out of stock"}
             </button>
             {!token && (
               <p className="text-xs text-gray-500 text-center">
@@ -585,3 +657,67 @@ export default function ProductDetails() {
     </>
   );
 }
+const colorOptions = [
+  { label: "Red", swatch: "#e53935" },
+  { label: "Pink", swatch: "#f06292" },
+  { label: "Magenta", swatch: "#d81b60" },
+  { label: "Maroon", swatch: "#7b1fa2" },
+  { label: "Yellow", swatch: "#fbc02d" },
+  { label: "Mustard", swatch: "#d3a518" },
+  { label: "Orange", swatch: "#ff7043" },
+  { label: "Peach", swatch: "#f8b195" },
+  { label: "Green", swatch: "#43a047" },
+  { label: "Olive", swatch: "#708238" },
+  { label: "Mint", swatch: "#7bdcb5" },
+  { label: "Sea Green", swatch: "#2e8b57" },
+  { label: "Teal", swatch: "#009688" },
+  { label: "Blue", swatch: "#1e88e5" },
+  { label: "Navy", swatch: "#1b3b6f" },
+  { label: "Purple", swatch: "#9c27b0" },
+  { label: "Lavender", swatch: "#c6a5d8" },
+  { label: "Brown", swatch: "#8d6e63" },
+  { label: "Beige", swatch: "#d9c4a1" },
+  { label: "Cream", swatch: "#f6e7c1" },
+  { label: "Grey", swatch: "#9e9e9e" },
+  { label: "Black", swatch: "#212121" },
+  { label: "White", swatch: "#f5f5f5" },
+  { label: "Gold", swatch: "#d4af37" },
+  { label: "Silver", swatch: "#c0c0c0" },
+  { label: "Multi", swatch: "linear-gradient(120deg, #e53935, #fbc02d, #43a047, #1e88e5, #9c27b0)" }
+];
+
+const colorSwatch = (label) => {
+  const match = colorOptions.find((opt) => opt.label.toLowerCase() === (label || "").toLowerCase());
+  return match?.swatch || "linear-gradient(135deg, #fdfcfb, #e2d1c3)";
+};
+
+const isSuitProduct = (product) => {
+  const parts = [
+    product?.name || "",
+    product?.category || "",
+    product?.categoryRef?.name || "",
+    product?.categoryRef?.slug || "",
+    ...(product?.collections || []).map((c) => c?.title || c?.slug || "")
+  ]
+    .join(" ")
+    .toLowerCase();
+  return parts.includes("suit");
+};
+
+const normalizedColors = (product) => {
+  if (!product) return [];
+  if (Array.isArray(product.colors) && product.colors.length) return product.colors.filter(Boolean);
+  if (product.color) {
+    return product.color
+      .split(/[,\\n]/)
+      .map((c) => c.trim())
+      .filter(Boolean);
+  }
+  return [];
+};
+
+const normalizedSizes = (product) => {
+  if (!product) return [];
+  if (Array.isArray(product.sizes) && product.sizes.length) return product.sizes.filter(Boolean);
+  return isSuitProduct(product) ? ["XS", "S", "M", "L", "XL"] : [];
+};

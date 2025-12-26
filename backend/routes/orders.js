@@ -249,7 +249,9 @@ router.post("/", auth, async (req, res) => {
     items: cart.items.map((i) => ({
       product: i.product._id,
       quantity: i.quantity,
-      price: i.product.discountPrice || i.product.price
+      price: i.product.discountPrice || i.product.price,
+      selectedColor: i.selectedColor || "",
+      selectedSize: i.selectedSize || ""
     })),
     amount,
     originalAmount,
@@ -342,7 +344,9 @@ router.post("/create", auth, async (req, res) => {
     items: cart.items.map((i) => ({
       product: i.product._id,
       quantity: i.quantity,
-      price: i.product.discountPrice || i.product.price
+      price: i.product.discountPrice || i.product.price,
+      selectedColor: i.selectedColor || "",
+      selectedSize: i.selectedSize || ""
     })),
     amount,
     originalAmount,

@@ -43,28 +43,45 @@ export function CartProvider({ children }) {
     return res.data;
   };
 
-  const addToCart = (productId) =>
-    mutateCart("/cart/add", { productId, quantity: 1 }, "Added to cart");
+  const addToCart = (productId, selectedColor = "", selectedSize = "") =>
+    mutateCart(
+      "/cart/add",
+      { productId, quantity: 1, selectedColor, selectedSize },
+      "Added to cart"
+    );
 
-  const increaseQty = (productId) => {
-    const target = cart.find((item) => item.product?._id === productId);
+  const increaseQty = (itemId) => {
+    const target = cart.find((item) => item._id === itemId);
     if (!target) return;
     return mutateCart("/cart/update", {
-      productId,
+      productId: target.product?._id,
+      itemId,
+      selectedColor: target.selectedColor,
+      selectedSize: target.selectedSize,
       quantity: target.quantity + 1
     }, "Updated quantity");
   };
 
-  const decreaseQty = (productId) => {
-    const target = cart.find((item) => item.product?._id === productId);
+  const decreaseQty = (itemId) => {
+    const target = cart.find((item) => item._id === itemId);
     if (!target) return;
     const nextQty = target.quantity - 1;
-    if (nextQty < 1) return removeFromCart(productId);
-    return mutateCart("/cart/update", { productId, quantity: nextQty }, "Updated quantity");
+    if (nextQty < 1) return removeFromCart(itemId);
+    return mutateCart(
+      "/cart/update",
+      {
+        productId: target.product?._id,
+        itemId,
+        selectedColor: target.selectedColor,
+        selectedSize: target.selectedSize,
+        quantity: nextQty
+      },
+      "Updated quantity"
+    );
   };
 
-  const removeFromCart = (productId) =>
-    mutateCart("/cart/remove", { productId }, "Removed from cart");
+  const removeFromCart = (itemId) =>
+    mutateCart("/cart/remove", { itemId }, "Removed from cart");
 
   return (
     <CartContext.Provider

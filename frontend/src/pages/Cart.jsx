@@ -38,6 +38,13 @@ export default function Cart() {
               <div>
                 <h2 className="font-semibold">{item.product.name}</h2>
                 <p>Qty: {item.quantity}</p>
+                {(item.selectedColor || item.selectedSize) && (
+                  <p className="text-sm text-gray-600">
+                    {item.selectedColor && <span>Color: {item.selectedColor}</span>}
+                    {item.selectedColor && item.selectedSize && <span> • </span>}
+                    {item.selectedSize && <span>Size: {item.selectedSize}</span>}
+                  </p>
+                )}
                 <p>
                   Price: Rs.{" "}
                   {formatPrice(

@@ -91,7 +91,7 @@ export default function ProductList() {
     let active = true;
     setLoading(true);
     axios
-      .get("/products")
+      .get("/products?includeInactive=true")
       .then((res) => {
         if (!active) return;
         setProducts(Array.isArray(res.data) ? res.data : res.data?.products || []);
@@ -190,7 +190,7 @@ export default function ProductList() {
   useEffect(() => {
     const moodTitles = moodFilters.map((card) => card.title).filter(Boolean);
     const productCategories = (products || [])
-      .map((item) => (item.category || "").trim())
+      .map((item) => (item.category || "").trim() || (item.categoryRef?.name || "").trim())
       .filter(Boolean);
     const collectionTitles = (collections || [])
       .map((col) => col.title)
@@ -221,6 +221,7 @@ export default function ProductList() {
       if (mood) {
         const moodProductIds = mood.meta?.products || mood.productIds || [];
         const moodSlug = mood.slug;
+        const moodTitle = mood.title || "";
         if (moodProductIds.length) {
           data = data.filter((item) => moodProductIds.includes(item._id) || moodProductIds.includes(item.productId));
         } else if (moodSlug) {
@@ -233,16 +234,28 @@ export default function ProductList() {
           );
         } else if (mood.title) {
           data = data.filter((item) =>
-            (item.category || "").toLowerCase().includes(mood.title.toLowerCase())
+            [(item.category || ""), item.categoryRef?.name || "", ...(item.collections || []).map((c) => c?.title || "")]
+              .join(" ")
+              .toLowerCase()
+              .includes(moodTitle.toLowerCase())
           );
         }
       }
     }
 
     if (!moodLocked && category && category !== "All Sarees") {
-      data = data.filter((item) =>
-        (item.category || "").toLowerCase().includes(category.toLowerCase())
-      );
+      const target = category.toLowerCase();
+      data = data.filter((item) => {
+        const fields = [
+          item.category || "",
+          item.categoryRef?.name || "",
+          item.categoryRef?.slug || "",
+          ...(item.collections || []).map((col) => col?.title || col?.slug || "")
+        ]
+          .join(" ")
+          .toLowerCase();
+        return fields.includes(target);
+      });
     }
 
     if (collectionFilter) {

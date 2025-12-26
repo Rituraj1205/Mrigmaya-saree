@@ -12,6 +12,32 @@ const isVideoLink = (url = "") => {
   return /\.(mp4|webm|ogg)$/.test(normalized);
 };
 
+const getProductColorsLabel = (product) => {
+  if (!product) return "";
+  if (Array.isArray(product.colors) && product.colors.length) {
+    return product.colors.join(", ");
+  }
+  return product.color || "";
+};
+
+const colorSwatch = (label) => {
+  const match = colorOptions.find((opt) => opt.label.toLowerCase() === (label || "").toLowerCase());
+  return match?.swatch || "linear-gradient(135deg, #fdfcfb, #e2d1c3)";
+};
+
+const isLightColor = (value) => {
+  if (!value?.startsWith("#") || (value.length !== 7 && value.length !== 4)) return false;
+  const hex = value.length === 4
+    ? `#${value[1]}${value[1]}${value[2]}${value[2]}${value[3]}${value[3]}`
+    : value;
+  const num = parseInt(hex.slice(1), 16);
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  return brightness > 180;
+};
+
 const emptyProduct = {
   name: "",
   description: "",
@@ -19,6 +45,8 @@ const emptyProduct = {
   categoryRef: "",
   fabric: "",
   color: "",
+  colors: [],
+  sizes: [],
   amazonLink: "",
   flipkartLink: "",
   price: "",
@@ -49,15 +77,46 @@ const orderStatusOptions = [
   { value: "cancelled", label: "Cancelled" }
 ];
 
-  const paymentStatusOptions = [
-    { value: "cod_pending", label: "Awaiting COD" },
-    { value: "awaiting_upi", label: "Awaiting UPI" },
-    { value: "awaiting_gateway", label: "Awaiting gateway" },
-    { value: "paid", label: "Paid" },
-    { value: "cancelled", label: "Cancelled" }
-  ];
+const colorOptions = [
+  { label: "Red", swatch: "#e53935" },
+  { label: "Pink", swatch: "#f06292" },
+  { label: "Magenta", swatch: "#d81b60" },
+  { label: "Maroon", swatch: "#7b1fa2" },
+  { label: "Yellow", swatch: "#fbc02d" },
+  { label: "Mustard", swatch: "#d3a518" },
+  { label: "Orange", swatch: "#ff7043" },
+  { label: "Peach", swatch: "#f8b195" },
+  { label: "Green", swatch: "#43a047" },
+  { label: "Olive", swatch: "#708238" },
+  { label: "Mint", swatch: "#7bdcb5" },
+  { label: "Sea Green", swatch: "#2e8b57" },
+  { label: "Teal", swatch: "#009688" },
+  { label: "Blue", swatch: "#1e88e5" },
+  { label: "Navy", swatch: "#1b3b6f" },
+  { label: "Purple", swatch: "#9c27b0" },
+  { label: "Lavender", swatch: "#c6a5d8" },
+  { label: "Brown", swatch: "#8d6e63" },
+  { label: "Beige", swatch: "#d9c4a1" },
+  { label: "Cream", swatch: "#f6e7c1" },
+  { label: "Grey", swatch: "#9e9e9e" },
+  { label: "Black", swatch: "#212121" },
+  { label: "White", swatch: "#f5f5f5" },
+  { label: "Gold", swatch: "#d4af37" },
+  { label: "Silver", swatch: "#c0c0c0" },
+  { label: "Multi", swatch: "linear-gradient(120deg, #e53935, #fbc02d, #43a047, #1e88e5, #9c27b0)" }
+];
 
-  export default function AdminDashboard() {
+const suitSizes = ["XS", "S", "M", "L", "XL"];
+
+const paymentStatusOptions = [
+  { value: "cod_pending", label: "Awaiting COD" },
+  { value: "awaiting_upi", label: "Awaiting UPI" },
+  { value: "awaiting_gateway", label: "Awaiting gateway" },
+  { value: "paid", label: "Paid" },
+  { value: "cancelled", label: "Cancelled" }
+];
+
+export default function AdminDashboard() {
   const { token, user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
@@ -66,6 +125,8 @@ const orderStatusOptions = [
   const [productForm, setProductForm] = useState(emptyProduct);
   const [productMoodIds, setProductMoodIds] = useState([]);
   const [productFiles, setProductFiles] = useState([]);
+  const [customColor, setCustomColor] = useState("");
+  const [forceSizes, setForceSizes] = useState(false);
   const [productVideoUploading, setProductVideoUploading] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
   const [collectionForm, setCollectionForm] = useState(emptyCollection);
@@ -115,6 +176,15 @@ const orderStatusOptions = [
         .filter(Boolean),
     [productForm.images]
   );
+  const selectedCategory = useMemo(
+    () => categories.find((cat) => cat._id === productForm.categoryRef),
+    [categories, productForm.categoryRef]
+  );
+  const categoryLabel = useMemo(() => {
+    const label = `${selectedCategory?.name || ""} ${selectedCategory?.slug || ""} ${productForm.category || ""}`;
+    return label.toLowerCase().trim();
+  }, [productForm.category, selectedCategory]);
+  const isSuitCategory = categoryLabel.includes("suit");
   const [activePanel, setActivePanel] = useState("collections");
   const panelTabs = [
     { id: "collections", label: "Collections" },
@@ -166,6 +236,33 @@ const orderStatusOptions = [
     }
     return true;
   };
+
+  const toggleColor = (value) => {
+    setProductForm((prev) => {
+      const current = prev.colors || [];
+      const exists = current.includes(value);
+      const colors = exists ? current.filter((c) => c !== value) : [...current, value];
+      return { ...prev, colors, color: colors[0] || "" };
+    });
+  };
+
+  const addCustomColor = () => {
+    const value = customColor.trim();
+    if (!value) return;
+    toggleColor(value);
+    setCustomColor("");
+  };
+
+  const toggleSize = (value) => {
+    setProductForm((prev) => {
+      const current = prev.sizes || [];
+      const exists = current.includes(value);
+      const sizes = exists ? current.filter((s) => s !== value) : [...current, value];
+      return { ...prev, sizes };
+    });
+  };
+
+  const shouldShowSizes = isSuitCategory || forceSizes || (productForm.sizes || []).length > 0;
 
   const shippingSummary = (order) => {
     const addr = order?.shippingAddress || {};
@@ -887,13 +984,20 @@ const orderStatusOptions = [
 
   const handleProductSubmit = async () => {
     try {
+      if (shouldShowSizes && (productForm.sizes || []).length === 0) {
+        toast.error("Select at least one size for suits");
+        return;
+      }
       const formData = new FormData();
       formData.append("name", productForm.name);
       formData.append("description", productForm.description);
       formData.append("category", productForm.category);
       if (productForm.categoryRef) formData.append("categoryRef", productForm.categoryRef);
       formData.append("fabric", productForm.fabric);
-      formData.append("color", productForm.color);
+      const joinedColors = (productForm.colors || []).join(",").trim();
+      formData.append("color", joinedColors || productForm.color || "");
+      formData.append("colors", (productForm.colors || []).join(","));
+      formData.append("sizes", (productForm.sizes || []).join(","));
       formData.append("price", productForm.price || 0);
       if (productForm.discountPrice)
         formData.append("discountPrice", productForm.discountPrice);
@@ -941,13 +1045,24 @@ const orderStatusOptions = [
   const handleEditProduct = (product) => {
     setEditingProductId(product._id);
     setProductFiles([]);
+    setForceSizes(product.sizes?.length > 0);
     setProductForm({
       name: product.name || "",
       description: product.description || "",
       category: product.category || "",
       categoryRef: product.categoryRef?._id || product.categoryRef || "",
       fabric: product.fabric || "",
-      color: product.color || "",
+      color: product.color || product.colors?.[0] || "",
+      colors:
+        (Array.isArray(product.colors) && product.colors.length
+          ? product.colors
+          : product.color
+            ? product.color
+                .split(/[,\\n]/)
+                .map((c) => c.trim())
+                .filter(Boolean)
+            : []),
+      sizes: product.sizes || [],
       amazonLink: product.amazonLink || "",
       flipkartLink: product.flipkartLink || "",
       price: product.price || "",
@@ -970,6 +1085,8 @@ const orderStatusOptions = [
     setProductForm(emptyProduct);
     setProductMoodIds([]);
     setProductFiles([]);
+    setCustomColor("");
+    setForceSizes(false);
     setEditingProductId(null);
   };
 
@@ -1372,6 +1489,26 @@ const orderStatusOptions = [
                         <p className="text-xs text-gray-500">
                           {order.items.length} item(s)
                         </p>
+                        <div className="text-[11px] text-gray-500 space-y-1 mt-1">
+                          {order.items.map((item, idx) => (
+                            <div key={`${item.product}-${idx}`} className="flex flex-wrap gap-1 items-center">
+                              <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 border border-gray-200">
+                                {item.product?.name || "Item"}
+                              </span>
+                              {item.selectedColor && (
+                                <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-100">
+                                  {item.selectedColor}
+                                </span>
+                              )}
+                              {item.selectedSize && (
+                                <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-800 border border-indigo-100">
+                                  {item.selectedSize}
+                                </span>
+                              )}
+                              <span className="text-gray-400">×{item.quantity}</span>
+                            </div>
+                          ))}
+                        </div>
                       </td>
                       <td className="text-xs text-gray-600">
                         {order.user?.mobile || order.customerContact || "NA"}
@@ -1650,12 +1787,133 @@ const orderStatusOptions = [
               placeholder="Fabric"
               className="border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-pink-100"
             />
-            <input
-              value={productForm.color}
-              onChange={(e) => setProductForm({ ...productForm, color: e.target.value })}
-              placeholder="Color tone"
-              className="border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-pink-100"
-            />
+            <div className="md:col-span-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-gray-500">Available colors (Saree / Suit)</label>
+                {productForm.colors.length > 0 && (
+                  <span className="text-xs text-gray-400">{productForm.colors.length} selected</span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 text-xs text-gray-500 mt-2">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={forceSizes}
+                    onChange={(e) => setForceSizes(e.target.checked)}
+                  />
+                  Suit product? Show size picker
+                </label>
+                <span className="text-[11px]">
+                  Detected category: {isSuitCategory ? "Suit" : "Other"}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {colorOptions.map((opt) => {
+                  const active = productForm.colors.includes(opt.label);
+                  const swatch = colorSwatch(opt.label);
+                  const textColor =
+                    typeof swatch === "string" && swatch.startsWith("#") && isLightColor(swatch)
+                      ? "#1f2937"
+                      : "#ffffff";
+                  return (
+                    <button
+                      key={opt.label}
+                      type="button"
+                      onClick={() => toggleColor(opt.label)}
+                      title={opt.label}
+                      className={`px-3 py-2 rounded-full text-xs border transition shadow-sm ${
+                        active ? "ring-2 ring-pink-200 border-pink-200" : "border-gray-200"
+                      }`}
+                      style={{
+                        background: swatch,
+                        color: active ? textColor : "#ffffff",
+                        minWidth: 64,
+                        boxShadow: active ? "0 4px 12px rgba(0,0,0,0.12)" : "0 2px 6px rgba(0,0,0,0.06)"
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex gap-2 mt-3">
+                <input
+                  value={customColor}
+                  onChange={(e) => setCustomColor(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addCustomColor();
+                    }
+                  }}
+                  placeholder="Add custom color (press Enter)"
+                  className="border rounded-xl px-4 py-3 flex-1 focus:outline-none focus:ring-2 focus:ring-pink-100"
+                />
+                <button
+                  type="button"
+                  onClick={addCustomColor}
+                  className="px-4 py-3 rounded-xl bg-gray-900 text-white text-sm"
+                >
+                  Add
+                </button>
+              </div>
+              {productForm.colors.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {productForm.colors.map((color) => (
+                    <span
+                      key={color}
+                      className="px-3 py-1 rounded-full border text-xs text-gray-700 flex items-center gap-2 shadow-sm"
+                      style={{ background: colorSwatch(color), borderColor: "rgba(0,0,0,0.08)", color: "#1f2937" }}
+                    >
+                      {color}
+                      <button type="button" className="text-gray-400" onClick={() => toggleColor(color)}>
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            {shouldShowSizes && (
+              <div className="md:col-span-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-gray-500">Available sizes (Suit)</label>
+                  {productForm.sizes.length === 0 && (
+                    <span className="text-xs text-red-500">Select sizes for suits</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 text-xs text-gray-500 mb-2">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={forceSizes}
+                      onChange={(e) => setForceSizes(e.target.checked)}
+                    />
+                    Force show sizes (for suit products without “suit” in category name)
+                  </label>
+                  <span>Detected: {isSuitCategory ? "Suit category" : "Other"}</span>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {suitSizes.map((size) => {
+                    const active = productForm.sizes.includes(size);
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => toggleSize(size)}
+                        className={`px-3 py-2 rounded-full text-xs border transition ${
+                          active
+                            ? "bg-indigo-100 border-indigo-300 text-indigo-700"
+                            : "bg-white border-gray-200 text-gray-600 hover:border-indigo-200"
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <input
               value={productForm.amazonLink}
               onChange={(e) => setProductForm({ ...productForm, amazonLink: e.target.value })}
@@ -2976,8 +3234,8 @@ function CollectionProductManager({ collection, products, onUpdate }) {
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-900">{product.name}</p>
               <p className="text-xs text-gray-500">
-                {(product.color || product.category) && (
-                  <span>{product.color || product.category} • </span>
+                {(getProductColorsLabel(product) || product.category) && (
+                  <span>{getProductColorsLabel(product) || product.category} • </span>
                 )}
                 Rs.{" "}
                 {new Intl.NumberFormat("en-IN").format(product.discountPrice || product.price || 0)}

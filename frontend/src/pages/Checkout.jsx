@@ -288,6 +288,13 @@ export default function Checkout() {
             <div>
               <p className="font-medium text-gray-900">{item.product?.name}</p>
               <p className="text-gray-500">Qty: {item.quantity}</p>
+              {(item.selectedColor || item.selectedSize) && (
+                <p className="text-xs text-gray-500">
+                  {item.selectedColor && <span>Color: {item.selectedColor}</span>}
+                  {item.selectedColor && item.selectedSize && <span> • </span>}
+                  {item.selectedSize && <span>Size: {item.selectedSize}</span>}
+                </p>
+              )}
             </div>
             <span className="font-semibold text-gray-900">
               Rs.{" "}

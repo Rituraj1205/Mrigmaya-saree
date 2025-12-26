@@ -665,7 +665,7 @@ export default function Home() {
     let isMounted = true;
     setLoading(true);
     axios
-      .get("/products")
+      .get("/products?includeInactive=true")
       .then((res) => {
         if (isMounted) {
           setProducts(Array.isArray(res.data) ? res.data : res.data?.products || []);
