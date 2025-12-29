@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axios from "../../api/axios";
@@ -40,6 +40,7 @@ const isLightColor = (value) => {
 
 const emptyProduct = {
   name: "",
+  productCode: "",
   description: "",
   category: "",
   categoryRef: "",
@@ -53,6 +54,7 @@ const emptyProduct = {
   discountPrice: "",
   stock: "",
   images: "",
+  colorImages: [],
   video: "",
   collectionIds: []
 };
@@ -123,6 +125,8 @@ export default function AdminDashboard() {
   const [collections, setCollections] = useState([]);
   const [categories, setCategories] = useState([]);
   const [productForm, setProductForm] = useState(emptyProduct);
+  const colorUploadInputRef = useRef(null);
+  const [pendingColorUpload, setPendingColorUpload] = useState("");
   const [productMoodIds, setProductMoodIds] = useState([]);
   const [productFiles, setProductFiles] = useState([]);
   const [customColor, setCustomColor] = useState("");
@@ -245,6 +249,40 @@ export default function AdminDashboard() {
       const colors = exists ? current.filter((c) => c !== value) : [...current, value];
       return { ...prev, colors, color: colors[0] || "" };
     });
+    // If newly added, prompt for color-specific images
+    setTimeout(() => {
+      setPendingColorUpload(value);
+      colorUploadInputRef.current?.click();
+    }, 0);
+  };
+
+  const addColorImages = (color, urls = []) => {
+    if (!color || !urls.length) return;
+    setProductForm((prev) => {
+      const next = [...(prev.colorImages || [])];
+      const idx = next.findIndex((c) => (c.color || "").toLowerCase() === color.toLowerCase());
+      if (idx >= 0) {
+        const existing = next[idx].images || [];
+        next[idx] = { ...next[idx], color, images: [...existing, ...urls] };
+      } else {
+        next.push({ color, images: urls });
+      }
+      return { ...prev, colorImages: next };
+    });
+  };
+
+  const handleColorUploadFiles = async (files) => {
+    if (!pendingColorUpload || !files?.length) return;
+    const uploaded = [];
+    for (const file of Array.from(files)) {
+      const url = await handleGalleryUpload(file);
+      if (url) uploaded.push(url);
+    }
+    if (uploaded.length) {
+      addColorImages(pendingColorUpload, uploaded);
+    }
+    setPendingColorUpload("");
+    if (colorUploadInputRef.current) colorUploadInputRef.current.value = "";
   };
 
   const addCustomColor = () => {
@@ -1035,6 +1073,7 @@ export default function AdminDashboard() {
       }
       const formData = new FormData();
       formData.append("name", productForm.name);
+      if (productForm.productCode) formData.append("productCode", productForm.productCode.trim());
       formData.append("description", productForm.description);
       formData.append("category", productForm.category);
       if (productForm.categoryRef) formData.append("categoryRef", productForm.categoryRef);
@@ -1044,12 +1083,14 @@ export default function AdminDashboard() {
       formData.append("colors", (productForm.colors || []).join(","));
       formData.append("sizes", (productForm.sizes || []).join(","));
       formData.append("price", productForm.price || 0);
-      if (productForm.discountPrice)
-        formData.append("discountPrice", productForm.discountPrice);
+      if (productForm.discountPrice) formData.append("discountPrice", productForm.discountPrice);
       formData.append("stock", productForm.stock || 0);
       if (productForm.amazonLink) formData.append("amazonLink", productForm.amazonLink.trim());
       if (productForm.flipkartLink) formData.append("flipkartLink", productForm.flipkartLink.trim());
       formData.append("images", productForm.images);
+      if (productForm.colorImages?.length) {
+        formData.append("colorImages", JSON.stringify(productForm.colorImages));
+      }
       if (productForm.video) formData.append("video", productForm.video);
       formData.append("collections", productForm.collectionIds.join(","));
       productFiles.forEach((file) => formData.append("images", file));
@@ -1093,6 +1134,7 @@ export default function AdminDashboard() {
     setForceSizes(product.sizes?.length > 0);
     setProductForm({
       name: product.name || "",
+      productCode: product.productCode || "",
       description: product.description || "",
       category: product.category || "",
       categoryRef: product.categoryRef?._id || product.categoryRef || "",
@@ -1114,6 +1156,7 @@ export default function AdminDashboard() {
       discountPrice: product.discountPrice || "",
       stock: product.stock || "",
       images: (product.images || []).join("\n"),
+      colorImages: product.colorImages || [],
       video: product.video || "",
       collectionIds: product.collections?.map((c) => c._id || c) || []
     });
@@ -1236,7 +1279,8 @@ export default function AdminDashboard() {
       return res.data.url;
     } catch (err) {
       console.error(err);
-      toast.error("Upload failed");
+      const msg = err?.response?.data?.msg || "Upload failed";
+      toast.error(msg);
       return "";
     }
   };
@@ -1257,6 +1301,20 @@ export default function AdminDashboard() {
       .map((id) => collections.find((collection) => collection._id === id)?.title)
       .filter(Boolean)
       .join(", ");
+
+  const productMoodMap = useMemo(() => {
+    const map = {};
+    moodCards.forEach((card) => {
+      const ids = card.meta?.products || card.productIds || [];
+      ids.forEach((id) => {
+        if (!map[id]) map[id] = [];
+        map[id].push(card.title || "Mood");
+      });
+    });
+    return map;
+  }, [moodCards]);
+
+  const selectedMoods = (productId) => (productMoodMap[productId] || []).join(", ");
 
   if (!token || user?.role !== "admin") {
     return null;
@@ -1540,6 +1598,11 @@ export default function AdminDashboard() {
                               <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 border border-gray-200">
                                 {item.product?.name || "Item"}
                               </span>
+                              {(item.product?.productCode || item.productCode) && (
+                                <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-100">
+                                  {item.product?.productCode || item.productCode}
+                                </span>
+                              )}
                               {item.selectedColor && (
                                 <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-100">
                                   {item.selectedColor}
@@ -1805,6 +1868,12 @@ export default function AdminDashboard() {
               placeholder="Product name"
               className="border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-pink-100"
             />
+            <input
+              value={productForm.productCode}
+              onChange={(e) => setProductForm({ ...productForm, productCode: e.target.value })}
+              placeholder="Internal product ID (for stock)"
+              className="border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-pink-100"
+            />
             <div>
               <label className="text-sm text-gray-500">Assign category</label>
               <select
@@ -1902,6 +1971,14 @@ export default function AdminDashboard() {
                   Add
                 </button>
               </div>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                ref={colorUploadInputRef}
+                className="hidden"
+                onChange={(e) => handleColorUploadFiles(e.target.files)}
+              />
               {productForm.colors.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-3">
                   {productForm.colors.map((color) => (
@@ -2213,6 +2290,7 @@ export default function AdminDashboard() {
                   <th className="py-2">Name</th>
                   <th>Price</th>
                   <th>Collections</th>
+                  <th>Moods</th>
                   <th></th>
                 </tr>
               </thead>
@@ -2223,6 +2301,9 @@ export default function AdminDashboard() {
                     <td>{product.discountPrice || product.price}</td>
                     <td className="text-xs text-gray-500">
                       {selectedCollections(product.collections?.map((c) => c._id || c))}
+                    </td>
+                    <td className="text-xs text-gray-500">
+                      {selectedMoods(product._id) || "—"}
                     </td>
                     <td className="text-right space-x-3">
                       <button
@@ -2990,9 +3071,133 @@ function MoodCard({
               </option>
             ))}
           </select>
-        </div>
-      </div>
-    </div>
+              </div>
+            </div>
+            <div className="md:col-span-2 border border-gray-100 rounded-2xl p-4">
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-gray-500">Color-specific galleries</label>
+                <button
+                  type="button"
+                  className="text-xs text-pink-600"
+                  onClick={() =>
+                    setProductForm((prev) => ({
+                      ...prev,
+                      colorImages: [...(prev.colorImages || []), { color: "", images: [] }]
+                    }))
+                  }
+                >
+                  + Add color gallery
+                </button>
+              </div>
+              <div className="space-y-3 mt-3">
+                {(productForm.colorImages || []).map((entry, idx) => (
+                  <div
+                    key={`color-gallery-${idx}`}
+                    className="border border-gray-200 rounded-xl p-3 flex flex-col gap-2 bg-white"
+                  >
+                    <div className="flex gap-2 items-center">
+                      <input
+                        value={entry.color}
+                        onChange={(e) =>
+                          setProductForm((prev) => {
+                            const next = [...(prev.colorImages || [])];
+                            next[idx] = { ...next[idx], color: e.target.value };
+                            return { ...prev, colorImages: next };
+                          })
+                        }
+                        placeholder="Color (e.g. Red)"
+                        className="border rounded-xl px-3 py-2 flex-1 text-sm"
+                      />
+                      <button
+                        type="button"
+                        className="text-xs text-red-500"
+                        onClick={() =>
+                          setProductForm((prev) => {
+                            const next = [...(prev.colorImages || [])];
+                            next.splice(idx, 1);
+                            return { ...prev, colorImages: next };
+                          })
+                        }
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={(entry.images || []).join(",")}
+                        onChange={(e) =>
+                          setProductForm((prev) => {
+                            const next = [...(prev.colorImages || [])];
+                            next[idx] = {
+                              ...next[idx],
+                              images: e.target.value
+                                .split(/[,]/)
+                                .map((u) => u.trim())
+                                .filter(Boolean)
+                            };
+                            return { ...prev, colorImages: next };
+                          })
+                        }
+                        placeholder="Image URLs (comma separated)"
+                        className="border rounded-xl px-3 py-2 flex-1 text-sm"
+                      />
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="text-sm"
+                        onChange={async (e) => {
+                          const files = Array.from(e.target.files || []);
+                          if (!files.length) return;
+                          const uploaded = [];
+                          for (const file of files) {
+                            const url = await handleGalleryUpload(file);
+                            if (url) uploaded.push(url);
+                          }
+                          if (uploaded.length) {
+                            setProductForm((prev) => {
+                              const next = [...(prev.colorImages || [])];
+                              const existing = next[idx]?.images || [];
+                              next[idx] = { ...next[idx], images: [...existing, ...uploaded] };
+                              return { ...prev, colorImages: next };
+                            });
+                          }
+                        }}
+                      />
+                    </div>
+                    {(entry.images || []).length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {entry.images.map((url, i) => (
+                          <div key={`${url}-${i}`} className="relative w-12 h-12 rounded-lg overflow-hidden border">
+                            <img src={resolveAsset(url)} alt="" className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              className="absolute top-0 right-0 text-[10px] bg-white/80 px-1"
+                              onClick={() =>
+                                setProductForm((prev) => {
+                                  const next = [...(prev.colorImages || [])];
+                                  const imgs = [...(next[idx]?.images || [])];
+                                  imgs.splice(i, 1);
+                                  next[idx] = { ...next[idx], images: imgs };
+                                  return { ...prev, colorImages: next };
+                                })
+                              }
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {(productForm.colorImages || []).length === 0 && (
+                  <p className="text-xs text-gray-500">No color-specific galleries added.</p>
+                )}
+              </div>
+            </div>
+          </div>
   );
 }
 

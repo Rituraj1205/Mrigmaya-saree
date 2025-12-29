@@ -48,6 +48,7 @@ const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 const buildProductPayload = async (req) => {
   const payload = {
     name: req.body.name,
+    productCode: typeof req.body.productCode === "string" ? req.body.productCode.trim() : undefined,
     description: req.body.description,
     category: req.body.category,
     video: req.body.video,
@@ -79,6 +80,30 @@ const buildProductPayload = async (req) => {
     payload.sizes = toArray(req.body.sizes);
   }
 
+  // Color-specific galleries: expect JSON string or array of { color, images }
+  if (req.body.colorImages) {
+    try {
+      const parsed =
+        typeof req.body.colorImages === "string" ? JSON.parse(req.body.colorImages) : req.body.colorImages;
+      if (Array.isArray(parsed)) {
+        payload.colorImages = parsed
+          .map((item) => {
+            const color = (item?.color || "").trim();
+            const images = Array.isArray(item?.images)
+              ? item.images.filter(Boolean)
+              : typeof item?.images === "string"
+                ? toArray(item.images)
+                : [];
+            if (!color || !images.length) return null;
+            return { color, images };
+          })
+          .filter(Boolean);
+      }
+    } catch (err) {
+      console.error("Failed to parse colorImages", err?.message || err);
+    }
+  }
+
   const imagesFromBody = toArray(req.body.images);
   const combinedImages = [];
   if (imagesFromBody.length) combinedImages.push(...imagesFromBody);
@@ -94,6 +119,10 @@ const buildProductPayload = async (req) => {
     if (exists) {
       payload.categoryRef = req.body.categoryRef;
     }
+  }
+
+  if (payload.productCode === undefined && req.body.productCode === "") {
+    payload.productCode = "";
   }
 
   if (req.body.collections !== undefined) {

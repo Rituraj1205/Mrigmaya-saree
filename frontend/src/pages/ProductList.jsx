@@ -432,6 +432,11 @@ export default function ProductList() {
                   await addToCart(targetId);
                   navigate("/checkout");
                 };
+                const handleAddToCart = async (e) => {
+                  e.stopPropagation();
+                  if (!targetId || (!item.productId && isCustom)) return;
+                  await addToCart(targetId);
+                };
                 return (
                   <article
                     key={item._id}
@@ -457,6 +462,16 @@ export default function ProductList() {
                         decoding="async"
                       />
                       <span className="card-badge">{badgeText}</span>
+                      {isClickable && (
+                        <button
+                          type="button"
+                          className="card-icon-btn"
+                          onClick={handleAddToCart}
+                          aria-label="Add to cart"
+                        >
+                          🛒
+                        </button>
+                      )}
                     </div>
                     <div className="card-body">
                       <p className="card-category">{item.category || "Saree"}</p>
@@ -469,24 +484,6 @@ export default function ProductList() {
                         <strong>{formatPrice(primaryPrice)}</strong>
                         {hasDiscount && <span>{formatPrice(item.price)}</span>}
                       </div>
-                      <button
-                        className="card-cta"
-                        disabled={!targetId || (!item.productId && isCustom)}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!targetId || (!item.productId && isCustom)) return;
-                          addToCart(targetId);
-                        }}
-                      >
-                        Add to cart
-                      </button>
-                      <button
-                        className="card-cta mt-2 bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] text-white"
-                        disabled={!targetId || (!item.productId && isCustom)}
-                        onClick={handleBuyNow}
-                      >
-                        Buy now
-                      </button>
                     </div>
                   </article>
                 );

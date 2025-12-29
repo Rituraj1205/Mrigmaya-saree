@@ -251,40 +251,115 @@ const HeroBanner = ({ slides = [] }) => {
   );
 };
 
-const resolveIcon = (icon) => {
-  if (!icon) return null;
-  if (icon.startsWith("http") || icon.startsWith("/")) {
-    return <img src={icon} alt="" className="w-7 h-7 object-contain drop-shadow-sm" />;
+const resolveIcon = (icon, fallbackLabel = "") => {
+  const lowerIcon = (icon || "").toLowerCase();
+  const lowerLabel = (fallbackLabel || "").toLowerCase();
+  const pick = (key) => key.some((k) => lowerIcon.includes(k) || lowerLabel.includes(k));
+
+  const icons = {
+    shipping: (
+      <svg viewBox="0 0 24 24" className="usp-icon-svg">
+        <path
+          d="M3 7h11v10H3V7Zm11 4h3l2 2v4h-5v-6Zm-8 6.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm10 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path d="M14 9h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    ),
+    returns: (
+      <svg viewBox="0 0 24 24" className="usp-icon-svg">
+        <path
+          d="M5.5 10.5 3 8l2.5-2.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M3.5 8H13a4 4 0 0 1 0 8H9.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M14 13.5 11.5 16 14 18.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+    styles: (
+      <svg viewBox="0 0 24 24" className="usp-icon-svg">
+        <path
+          d="m12 3 2.2 4.7L19 8.5l-3.5 3.4.8 4.9L12 14.8 7.7 16.8l.8-4.9L5 8.5l4.8-.8L12 3Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+    quality: (
+      <svg viewBox="0 0 24 24" className="usp-icon-svg">
+        <path
+          d="M12 2.8 15.2 5l3.8.6-.6 3.8L20 13l-2.6 2.6.6 3.8-3.8.6L12 21l-2.6 1.1-3.8-.6.6-3.8L4 13l1.6-3.6-.6-3.8 3.8-.6L12 2.8Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path d="M9.8 12.2 11 14.4l3.2-4.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  };
+
+  const type = pick(["ship", "delivery"]) ? "shipping" : pick(["return"]) ? "returns" : pick(["style", "look", "edit", "collection"]) ? "styles" : pick(["quality", "genuine", "authentic"]) ? "quality" : null;
+
+  if (icon && (icon.startsWith("http") || icon.startsWith("/"))) {
+    return <img src={icon} alt="" className="usp-icon-img" />;
   }
-  return (
-    <span className="text-2xl leading-none" role="img" aria-hidden="true">
-      {icon}
-    </span>
-  );
+
+  if (type && icons[type]) return icons[type];
+
+  if (icon) {
+    return (
+      <span className="text-xl leading-none" role="img" aria-hidden="true">
+        {icon}
+      </span>
+    );
+  }
+
+  return icons.quality;
 };
 
 const USPStrip = ({ items = uspFallback }) => {
   if (!items.length) return null;
   const marqueeItems = [...items, ...items];
   return (
-    <section className="usp-rail relative overflow-hidden py-6">
-      <div className="usp-rail__mask" aria-hidden="true" />
-      <div className="usp-rail__glow usp-rail__glow--one" aria-hidden="true" />
-      <div className="usp-rail__glow usp-rail__glow--two" aria-hidden="true" />
-      <div className="usp-rail__track marquee-track flex gap-10 items-center py-4 pl-8">
+    <section className="usp-rail relative overflow-hidden py-4">
+      <div className="usp-rail__track marquee-track flex gap-8 items-center py-2">
         {marqueeItems.map((usp, index) => {
           const icon = usp.icon || usp.meta?.icon;
           return (
             <div
               key={`${usp._id || usp.title}-${index}`}
               className="usp-rail__item"
-              style={{ animationDelay: `${(index % items.length) * 80}ms` }}
+              style={{ animationDelay: `${(index % items.length) * 60}ms` }}
             >
-              <div className="usp-rail__icon">{resolveIcon(icon)}</div>
-              <div>
-                <p className="usp-rail__title">{usp.title}</p>
-                <p className="usp-rail__sub">{usp.sub || usp.subtitle}</p>
-              </div>
+              <div className="usp-rail__icon">{resolveIcon(icon, usp.title || usp.sub || usp.subtitle)}</div>
+              <p className="usp-rail__title">{usp.title}</p>
             </div>
           );
         })}
@@ -293,18 +368,13 @@ const USPStrip = ({ items = uspFallback }) => {
   );
 };
 
-const CategoryShowcase = ({ cards = [] }) => {
-  const navigate = useNavigate();
-  const [shuffleKey, setShuffleKey] = useState(() => Date.now());
+  const CategoryShowcase = ({ cards = [] }) => {
+    const navigate = useNavigate();
 
-  useEffect(() => {
-    setShuffleKey(Date.now());
-  }, [cards?.length]);
-
-  const buildLink = (card) => {
-    const params = new URLSearchParams();
-    if (card?._id) params.set("moodId", card._id);
-    const productIds = card?.meta?.products || card?.productIds || [];
+    const buildLink = (card) => {
+      const params = new URLSearchParams();
+      if (card?._id) params.set("moodId", card._id);
+      const productIds = card?.meta?.products || card?.productIds || [];
     if (productIds.length) params.set("ids", productIds.join(","));
     const collectionSlug = card?.meta?.collectionSlug || card?.slug;
     if (collectionSlug) params.set("collectionSlug", collectionSlug);
@@ -312,14 +382,30 @@ const CategoryShowcase = ({ cards = [] }) => {
     return search ? `/products?${search}` : card?.ctaLink || "/products";
   };
 
-  const displayCards = useMemo(() => {
-    const list = Array.isArray(cards) ? [...cards] : [];
-    for (let i = list.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [list[i], list[j]] = [list[j], list[i]];
-    }
-    return list.slice(0, 4);
-  }, [cards, shuffleKey]);
+    const displayCards = useMemo(() => {
+      const list = Array.isArray(cards) ? [...cards] : [];
+      return list;
+    }, [cards]);
+
+    const [visibleCards, setVisibleCards] = useState(() => displayCards.slice(0, 4));
+
+    useEffect(() => {
+      if (displayCards.length <= 4) {
+        setVisibleCards(displayCards);
+        return;
+      }
+      let currentIndex = 0;
+      setVisibleCards(displayCards.slice(0, 4));
+      const interval = setInterval(() => {
+        currentIndex = (currentIndex + 1) % displayCards.length;
+        const nextCards = [];
+        for (let i = 0; i < 4; i += 1) {
+          nextCards.push(displayCards[(currentIndex + i) % displayCards.length]);
+        }
+        setVisibleCards(nextCards);
+      }, 4000);
+      return () => clearInterval(interval);
+    }, [displayCards]);
 
   if (!displayCards.length) return null;
 
@@ -330,8 +416,8 @@ const CategoryShowcase = ({ cards = [] }) => {
           <p className="text-xs uppercase tracking-[0.4em] text-gray-400">Shop by mood</p>
           <h2 className="text-3xl font-semibold text-gray-900">Featured edits</h2>
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {displayCards.map((card) => {
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {visibleCards.map((card) => {
             const cover = resolveAsset(
               card.image,
               "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80"
@@ -348,11 +434,11 @@ const CategoryShowcase = ({ cards = [] }) => {
                   if (linkTarget) navigate(linkTarget);
                 }}
               >
-                <div className="relative h-56 bg-[#fdf9f5] flex items-center justify-center">
+                <div className="relative h-48 bg-[#fdf9f5] flex items-center justify-center">
                   <img
                     src={cover}
                     alt={card.title}
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-cover"
                     loading="lazy"
                     decoding="async"
                   />
@@ -440,7 +526,7 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
             <img
               src={heroImage}
               alt={collection?.title}
-              className="w-full h-full object-contain sm:object-cover bg-[var(--surface-muted)]"
+              className="w-full h-full object-cover bg-[var(--surface-muted)]"
               loading="lazy"
               decoding="async"
             />
@@ -469,7 +555,7 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {displayedProducts.map((product) => {
                 const primaryPrice = product.discountPrice || product.price;
                 const discountPercent =
@@ -489,12 +575,12 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
                   >
                     <div
                       className="relative rounded-t-[28px] overflow-hidden bg-[#fdf9f5] flex items-center justify-center"
-                      style={{ aspectRatio: "3 / 4", minHeight: 220 }}
+                      style={{ aspectRatio: "3 / 4", minHeight: 260 }}
                     >
                       <img
                         src={resolveImage(product)}
                         alt={product.name}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-cover"
                         loading="lazy"
                         decoding="async"
                       />
@@ -725,9 +811,9 @@ export default function Home() {
     };
   }, []);
 
-  const topProducts = useMemo(() => products.slice(0, 4), [products]);
+  const topProducts = useMemo(() => products.slice(0, 6), [products]);
   const luxeEdit = useMemo(
-    () => [...products].sort((a, b) => (b.price || 0) - (a.price || 0)).slice(0, 4),
+    () => [...products].sort((a, b) => (b.price || 0) - (a.price || 0)).slice(0, 6),
     [products]
   );
   const slugOrder = ["sarees", "suits", "best-seller", "gold"];

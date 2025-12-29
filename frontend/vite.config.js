@@ -7,9 +7,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": {
-        target: "https://mrigmaya-saree.onrender.com",
+        target: "http://localhost:5000",
         changeOrigin: true,
-        secure: true
+        secure: false
       }
     }
   }

@@ -40,6 +40,11 @@ app.use(
         return callback(null, true);
       }
 
+      // Always allow localhost dev
+      if (origin && origin.startsWith("http://localhost")) {
+        return callback(null, true);
+      }
+
       // Allow requests without an Origin header (like curl/postman/health checks)
       if (!origin) {
         return callback(null, true);

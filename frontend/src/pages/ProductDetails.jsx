@@ -97,6 +97,10 @@ export default function ProductDetails() {
     });
   }, [product]);
 
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [selectedColor]);
+
   if (loading) return <div className="p-6">Loading...</div>;
   if (error) {
     return (
@@ -125,10 +129,7 @@ export default function ProductDetails() {
     );
   }
 
-  const gallery =
-    Array.isArray(product.images) && product.images.length
-      ? product.images.map((image) => normalizeImage(image))
-      : [];
+  const gallery = computeGallery(product, selectedColor);
   const activeImage = gallery[activeIndex] || normalizeImage(product.images?.[0]) || "";
   const handlePrev = () =>
     setActiveIndex((prev) => (gallery.length ? (prev - 1 + gallery.length) % gallery.length : 0));
@@ -179,8 +180,8 @@ export default function ProductDetails() {
     .filter((item) => item._id !== product._id)
     .filter((item) => {
       if (product.category && item.category === product.category) return true;
-      const currentCollections = (product.collections || []).map((c) => c._id || c);
-      const itemCollections = (item.collections || []).map((c) => c._id || c);
+      const currentCollections = normalizeCollections(product.collections).map((c) => c._id || c);
+      const itemCollections = normalizeCollections(item.collections).map((c) => c._id || c);
       return currentCollections.some((cid) => itemCollections.includes(cid));
     })
     .slice(0, 6);
@@ -525,7 +526,7 @@ export default function ProductDetails() {
           {relatedProducts.length === 0 ? (
             <p className="text-sm text-gray-500">More sarees will appear here soon.</p>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="related-rail">
               {relatedProducts.map((item) => {
                 const itemPrice = item.discountPrice || item.price;
                 const itemDiscount =
@@ -535,29 +536,29 @@ export default function ProductDetails() {
                 return (
                   <article
                     key={item._id}
-                    className="bg-white border border-gray-100 rounded-2xl shadow hover:-translate-y-1 transition cursor-pointer"
+                    className="related-card"
                     onClick={() => navigate(`/product/${item._id}`)}
                   >
-                    <div className="relative h-56 rounded-t-2xl overflow-hidden bg-white">
+                    <div className="related-card__image">
                       <img
                         src={resolveImage(item)}
                         alt={item.name}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-cover"
                         loading="lazy"
                         decoding="async"
                       />
                       {itemDiscount ? (
-                        <span className="absolute top-3 left-3 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                        <span className="related-card__badge">
                           -{itemDiscount}%
                         </span>
                       ) : null}
                     </div>
-                    <div className="p-4 space-y-2">
-                      <p className="text-[11px] uppercase tracking-[0.3em] text-gray-400">
+                    <div className="related-card__body">
+                      <p className="related-card__eyebrow">
                         {item.category || product.category}
                       </p>
-                      <h3 className="text-base font-semibold text-gray-900 line-clamp-2">{item.name}</h3>
-                      <div className="flex items-center gap-2 text-sm">
+                      <h3 className="related-card__title line-clamp-2">{item.name}</h3>
+                      <div className="related-card__price">
                         <span className="text-lg font-semibold text-gray-900">
                           {formatPrice(itemPrice)}
                         </span>
@@ -697,7 +698,7 @@ const isSuitProduct = (product) => {
     product?.category || "",
     product?.categoryRef?.name || "",
     product?.categoryRef?.slug || "",
-    ...(product?.collections || []).map((c) => c?.title || c?.slug || "")
+    ...normalizeCollections(product?.collections).map((c) => c?.title || c?.slug || "")
   ]
     .join(" ")
     .toLowerCase();
@@ -720,4 +721,67 @@ const normalizedSizes = (product) => {
   if (!product) return [];
   if (Array.isArray(product.sizes) && product.sizes.length) return product.sizes.filter(Boolean);
   return isSuitProduct(product) ? ["XS", "S", "M", "L", "XL"] : [];
+};
+
+function normalizeCollections(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+const computeGallery = (product, selectedColor) => {
+  if (!product) return [];
+  const colorImages = matchColorImages(product, selectedColor);
+  if (colorImages.length) {
+    return colorImages.map((src) => normalizeImage(src));
+  }
+  if (Array.isArray(product.images) && product.images.length) {
+    return product.images.map((image) => normalizeImage(image));
+  }
+  return [];
+};
+
+const matchColorImages = (product, selectedColor) => {
+  const color = (selectedColor || "").toLowerCase();
+  if (!color) return [];
+  const normalized = normalizeColorImages(product?.colorImages);
+  const match = normalized.find((entry) => (entry.color || "").toLowerCase() === color);
+  return match?.images || [];
+};
+
+const normalizeColorImages = (value) => {
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => {
+        if (!entry) return null;
+        const color = (entry.color || "").trim();
+        const images = normalizeImageList(entry.images);
+        if (!color || !images.length) return null;
+        return { color, images };
+      })
+      .filter(Boolean);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.entries(value)
+      .map(([color, images]) => {
+        const safeColor = (color || "").trim();
+        const safeImages = normalizeImageList(images);
+        if (!safeColor || !safeImages.length) return null;
+        return { color: safeColor, images: safeImages };
+      })
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
+const normalizeImageList = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value === "string") {
+    return value
+      .split(/[,\\n]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return [];
 };

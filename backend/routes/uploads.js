@@ -11,6 +11,8 @@ const upload = multer({
     const allowed = [
       "image/jpeg",
       "image/png",
+      "image/heic",
+      "image/heif",
       "image/webp",
       "image/gif",
       "video/mp4",
@@ -22,22 +24,36 @@ const upload = multer({
   }
 });
 
-router.post("/", upload.single("file"), (req, res) => {
-  if (!req.file) return res.status(400).json({ msg: "File missing" });
-  const url = `/uploads/${req.file.filename}`;
-  res.json({ url });
+router.post("/", (req, res, next) => {
+  upload.single("file")(req, res, (err) => {
+    if (err) {
+      console.error("Upload middleware error:", err);
+      return res.status(500).json({ msg: "Upload failed", error: err?.message || "Unknown error" });
+    }
+    try {
+      if (!req.file) return res.status(400).json({ msg: "File missing" });
+      const url = `/uploads/${req.file.filename}`;
+      res.json({ url });
+    } catch (e) {
+      console.error("Upload failed:", e);
+      res.status(500).json({ msg: "Upload failed", error: e?.message || "Unknown error" });
+    }
+  });
 });
 
 router.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
+    console.error("Multer error:", err);
     return res.status(400).json({ msg: err.message });
   }
   if (err && err.message === "Invalid file type") {
+    console.error("Invalid file type:", err);
     return res
       .status(400)
       .json({ msg: "Only images (jpg, png, webp, gif) or videos (mp4, webm, ogg) up to 25MB are allowed" });
   }
-  return next(err);
+  console.error("Unhandled upload error:", err);
+  return res.status(500).json({ msg: "Upload failed", error: err?.message || "Unknown error" });
 });
 
 export default router;
