@@ -1,13 +1,15 @@
-const envBase = (import.meta.env.VITE_API_BASE || "").trim();
-const isLocal =
-  (typeof window !== "undefined" && window.location.hostname === "localhost") ||
-  import.meta.env.DEV;
+const envApiBase = (import.meta.env.VITE_API_BASE || "").trim();
+const envAssetBase = (import.meta.env.VITE_ASSET_BASE || "").trim();
 
-// Default to the hosted API when no env var is provided so production builds don't hit localhost.
-const fallbackBase = isLocal ? "http://localhost:5000/api" : "https://mrigmaya-saree.onrender.com/api";
+// Default to relative /api so dev can proxy and production still works.
+export const API_BASE = envApiBase || "/api";
 
-export const API_BASE = envBase || fallbackBase;
-export const ASSET_BASE = API_BASE.replace(/\/api\/?$/, "");
+// Assets: prefer explicit asset base, else derive from full API base, else fall back to production host.
+const derivedAssetBase = API_BASE.startsWith("http")
+  ? API_BASE.replace(/\/api\/?$/, "")
+  : "https://mrigmaya-saree.onrender.com";
+
+export const ASSET_BASE = envAssetBase || derivedAssetBase;
 
 export const buildAssetUrl = (url, fallback = "") => {
   if (!url) return fallback;

@@ -191,6 +191,7 @@ export default function AdminDashboard() {
     { id: "products", label: "Products" },
     { id: "coupons", label: "Coupons" },
     { id: "homepage", label: "Homepage Slider" },
+    { id: "usp", label: "Offers Rail" },
     { id: "orders", label: "Orders" },
     { id: "returns", label: "Returns" },
     { id: "login-visuals", label: "Login visuals" }
@@ -456,6 +457,43 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleSaveUsp = async (payload, id) => {
+    if (!payload.title?.trim()) {
+      toast.error("Enter a title for the offer");
+      return;
+    }
+    const body = {
+      ...payload,
+      group: "usp",
+      order: Number(payload.order) || uspItems.length + 1
+    };
+    try {
+      if (id) {
+        await axios.put(`/home-sections/${id}`, body, authConfig);
+        toast.success("Offer updated");
+      } else {
+        await axios.post("/home-sections", body, authConfig);
+        toast.success("Offer added");
+      }
+      fetchHomeSections();
+    } catch (err) {
+      console.error(err);
+      toast.error("Could not save offer");
+    }
+  };
+
+  const handleDeleteUsp = async (id) => {
+    if (!window.confirm("Delete this offer?")) return;
+    try {
+      await axios.delete(`/home-sections/${id}`, authConfig);
+      toast.success("Deleted");
+      fetchHomeSections();
+    } catch (err) {
+      console.error(err);
+      toast.error("Could not delete offer");
+    }
+  };
+
   const uploadLoginImage = async (file, index) => {
     if (!validateImageFile(file)) return;
     if (!file) return;
@@ -483,6 +521,13 @@ export default function AdminDashboard() {
   const moodCards = useMemo(
     () =>
       [...homeSections.filter((section) => section.group === "category")].sort(
+        (a, b) => (a.order ?? 0) - (b.order ?? 0)
+      ),
+    [homeSections]
+  );
+  const uspItems = useMemo(
+    () =>
+      [...homeSections.filter((section) => section.group === "usp")].sort(
         (a, b) => (a.order ?? 0) - (b.order ?? 0)
       ),
     [homeSections]
@@ -2201,6 +2246,23 @@ export default function AdminDashboard() {
         </section>
           </>
         )}
+        {activePanel === "usp" && (
+          <section className="bg-white rounded-3xl shadow p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.4em] text-gray-400">Offers rail</p>
+                <h2 className="text-2xl font-semibold text-gray-900">Homepage offers</h2>
+                <p className="text-sm text-gray-500">
+                  These cards show in the scrolling rail. Set order to control their position.
+                </p>
+              </div>
+              <button onClick={fetchHomeSections} className="text-sm text-gray-500 underline">
+                Refresh
+              </button>
+            </div>
+            <OfferManager items={uspItems} onSave={handleSaveUsp} onDelete={handleDeleteUsp} />
+          </section>
+        )}
         {activePanel === "collections" && (
         <section className="bg-white rounded-3xl shadow p-6">
           <div className="flex items-center justify-between">
@@ -3144,6 +3206,153 @@ function CollectionCard({ collection, onSave, onDelete, onHeroUpload, onGalleryU
             Delete
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function OfferManager({ items, onSave, onDelete }) {
+  const empty = {
+    title: "",
+    subtitle: "",
+    tag: "",
+    badge: "",
+    ctaLabel: "",
+    ctaLink: "/products",
+    order: 1,
+    active: true
+  };
+  const [form, setForm] = useState(empty);
+  const [editingId, setEditingId] = useState(null);
+
+  const startEdit = (item) => {
+    setEditingId(item._id);
+    setForm({
+      title: item.title || "",
+      subtitle: item.subtitle || "",
+      tag: item.tag || "",
+      badge: item.badge || "",
+      ctaLabel: item.ctaLabel || "",
+      ctaLink: item.ctaLink || "/products",
+      order: item.order ?? 1,
+      active: item.active !== false
+    });
+  };
+
+  const reset = () => {
+    setEditingId(null);
+    setForm(empty);
+  };
+
+  const handleSubmit = () => {
+    onSave(form, editingId);
+    reset();
+  };
+
+  return (
+    <div className="grid md:grid-cols-[1.1fr,0.9fr] gap-6">
+      <div className="space-y-3">
+        <input
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          placeholder="Title (e.g. Flat 10% off)"
+          className="border rounded-xl px-3 py-2 w-full"
+        />
+        <input
+          value={form.subtitle}
+          onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
+          placeholder="Subtitle (e.g. Use code FEST10)"
+          className="border rounded-xl px-3 py-2 w-full"
+        />
+        <div className="grid sm:grid-cols-2 gap-3">
+          <input
+            value={form.tag}
+            onChange={(e) => setForm({ ...form, tag: e.target.value })}
+            placeholder="Tag (e.g. Limited)"
+            className="border rounded-xl px-3 py-2 w-full"
+          />
+          <input
+            value={form.badge}
+            onChange={(e) => setForm({ ...form, badge: e.target.value })}
+            placeholder="Badge (e.g. Ends Sunday)"
+            className="border rounded-xl px-3 py-2 w-full"
+          />
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <input
+            value={form.ctaLabel}
+            onChange={(e) => setForm({ ...form, ctaLabel: e.target.value })}
+            placeholder="CTA label (e.g. Shop now)"
+            className="border rounded-xl px-3 py-2 w-full"
+          />
+          <input
+            value={form.ctaLink}
+            onChange={(e) => setForm({ ...form, ctaLink: e.target.value })}
+            placeholder="CTA link (e.g. /products)"
+            className="border rounded-xl px-3 py-2 w-full"
+          />
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <input
+            type="number"
+            value={form.order}
+            onChange={(e) => setForm({ ...form, order: Number(e.target.value) })}
+            placeholder="Order (lower shows first)"
+            className="border rounded-xl px-3 py-2 w-full"
+          />
+          <label className="flex items-center gap-2 text-sm text-gray-600">
+            <input
+              type="checkbox"
+              checked={form.active}
+              onChange={(e) => setForm({ ...form, active: e.target.checked })}
+            />
+            Active
+          </label>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={handleSubmit} className="px-4 py-2 bg-gray-900 text-white rounded-full">
+            {editingId ? "Update offer" : "Add offer"}
+          </button>
+          {editingId && (
+            <button onClick={reset} className="text-sm text-gray-500 underline">
+              Cancel edit
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="space-y-3">
+        {items.map((item) => (
+          <div
+            key={item._id}
+            className="border border-gray-200 rounded-2xl p-3 bg-white shadow-sm flex items-start justify-between gap-3"
+          >
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-gray-900">
+                {item.title} {item.tag && <span className="text-xs text-gray-500">• {item.tag}</span>}
+              </p>
+              {item.subtitle && <p className="text-xs text-gray-600">{item.subtitle}</p>}
+              <div className="flex gap-2 text-[11px] text-gray-500">
+                <span>Order {item.order ?? 0}</span>
+                <span>•</span>
+                <span>{item.active === false ? "Hidden" : "Active"}</span>
+              </div>
+              {(item.ctaLabel || item.ctaLink) && (
+                <p className="text-xs text-pink-600">
+                  {item.ctaLabel || "CTA"} → {item.ctaLink || "/products"}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-col gap-1 text-xs">
+              <button onClick={() => startEdit(item)} className="text-pink-600">
+                Edit
+              </button>
+              <button onClick={() => onDelete(item._id)} className="text-red-500">
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
+        {items.length === 0 && <p className="text-sm text-gray-400">No offers yet.</p>}
       </div>
     </div>
   );
