@@ -1399,7 +1399,7 @@ export default function AdminDashboard() {
                   onChange={(e) => setCouponForm({ ...couponForm, discountType: e.target.value })}
                   className="border rounded-xl px-4 py-3 w-full"
                 >
-                  <option value="flat">Flat amount (₹)</option>
+                  <option value="flat">Flat amount (?)</option>
                   <option value="percent">Percent (%)</option>
                 </select>
 
@@ -1498,10 +1498,10 @@ export default function AdminDashboard() {
                       <td className="py-2 font-semibold text-gray-900">{c.code}</td>
                       <td>{c.discountType}</td>
                       <td>
-                        {c.discountType === "percent" ? `${c.value}%` : `₹${c.value}`}
-                        {c.maxDiscount ? ` (cap ₹${c.maxDiscount})` : ""}
+                        {c.discountType === "percent" ? `${c.value}%` : `?${c.value}`}
+                        {c.maxDiscount ? ` (cap ?${c.maxDiscount})` : ""}
                       </td>
-                      <td>₹{c.minOrderValue || 0}</td>
+                      <td>?{c.minOrderValue || 0}</td>
                       <td>
                         {c.redemptions || 0} / {c.maxRedemptions || 1}
                       </td>
@@ -1613,7 +1613,7 @@ export default function AdminDashboard() {
                                   {item.selectedSize}
                                 </span>
                               )}
-                              <span className="text-gray-400">×{item.quantity}</span>
+                              <span className="text-gray-400">?{item.quantity}</span>
                             </div>
                           ))}
                         </div>
@@ -1623,7 +1623,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="text-xs text-gray-600 max-w-xs">
                         <p className="font-semibold text-gray-900">
-                          {order.shippingAddress?.name || "—"}
+                          {order.shippingAddress?.name || "?"}
                         </p>
                         <p className="text-gray-500">{shippingSummary(order)}</p>
                         {order.customerNote && (
@@ -1633,7 +1633,7 @@ export default function AdminDashboard() {
                         )}
                       </td>
                       <td className="font-semibold text-gray-900">
-                        ₹{new Intl.NumberFormat("en-IN").format(order.amount || 0)}
+                        ?{new Intl.NumberFormat("en-IN").format(order.amount || 0)}
                       </td>
                       <td>
                         <div className="space-y-2">
@@ -1989,7 +1989,7 @@ export default function AdminDashboard() {
                     >
                       {color}
                       <button type="button" className="text-gray-400" onClick={() => toggleColor(color)}>
-                        ×
+                        ?
                       </button>
                     </span>
                   ))}
@@ -2011,7 +2011,7 @@ export default function AdminDashboard() {
                       checked={forceSizes}
                       onChange={(e) => setForceSizes(e.target.checked)}
                     />
-                    Force show sizes (for suit products without “suit” in category name)
+                    Force show sizes (for suit products without ?suit? in category name)
                   </label>
                   <span>Detected: {isSuitCategory ? "Suit category" : "Other"}</span>
                 </div>
@@ -2303,7 +2303,7 @@ export default function AdminDashboard() {
                       {selectedCollections(product.collections?.map((c) => c._id || c))}
                     </td>
                     <td className="text-xs text-gray-500">
-                      {selectedMoods(product._id) || "—"}
+                      {selectedMoods(product._id) || "?"}
                     </td>
                     <td className="text-right space-x-3">
                       <button
@@ -2709,7 +2709,7 @@ export default function AdminDashboard() {
                               }))
                             }
                           >
-                            ×
+                            ?
                           </button>
                         </span>
                       );
@@ -2758,16 +2758,16 @@ export default function AdminDashboard() {
                     allProducts={products}
                     onAddCustom={(item) => handleMoodCustomAdd(card._id, item)}
                     onDeleteCustom={(idx) => handleMoodCustomRemove(card._id, idx)}
-                onUploadCustom={handleMoodCustomUpload}
-              />
-            ))}
-          {moodCards.length === 0 && (
+                    onUploadCustom={handleMoodCustomUpload}
+                  />
+              ))}
+        {moodCards.length === 0 && (
             <p className="text-sm text-gray-500">No mood cards yet. Add up to 3 tiles.</p>
           )}
         </div>
       </div>
     </section>
-    )}
+        )}
 
         {activePanel === "login-visuals" && (
           <section className="bg-white rounded-3xl shadow p-6">
@@ -2987,7 +2987,7 @@ function MoodCard({
       </div>
       <div>
         <p className="text-xs uppercase tracking-[0.3em] text-gray-400 flex items-center gap-2">
-          {card.tag || "Mood"} <span className="text-gray-300">·</span> Order {card.order ?? index + 1}
+          {card.tag || "Mood"} <span className="text-gray-300">?</span> Order {card.order ?? index + 1}
         </p>
         <p className="text-base font-semibold text-gray-900">{card.title || "Untitled"}</p>
         {card.subtitle && <p className="text-sm text-gray-500">{card.subtitle}</p>}
@@ -2998,7 +2998,7 @@ function MoodCard({
         )}
         {card.ctaLabel && (
           <p className="text-[11px] text-pink-600 mt-1">
-            {card.ctaLabel} → {card.ctaLink || "/products"}
+            {card.ctaLabel} ? {card.ctaLink || "/products"}
           </p>
         )}
       </div>
@@ -3053,7 +3053,7 @@ function MoodCard({
                 className="text-gray-500"
                 onClick={() => onDeleteProduct(id)}
               >
-                ×
+                ?
               </button>
             </span>
           ))}
@@ -3071,6 +3071,345 @@ function MoodCard({
               </option>
             ))}
           </select>
+              </div>
+            </div>
+            <div className="md:col-span-2 border border-gray-100 rounded-2xl p-4">
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-gray-500">Color-specific galleries</label>
+                <button
+                  type="button"
+                  className="text-xs text-pink-600"
+                  onClick={() =>
+                    setProductForm((prev) => ({
+                      ...prev,
+                      colorImages: [...(prev.colorImages || []), { color: "", images: [] }]
+                    }))
+                  }
+                >
+                  + Add color gallery
+                </button>
+              </div>
+              <div className="space-y-3 mt-3">
+                {(productForm.colorImages || []).map((entry, idx) => (
+                  <div
+                    key={`color-gallery-${idx}`}
+                    className="border border-gray-200 rounded-xl p-3 flex flex-col gap-2 bg-white"
+                  >
+                    <div className="flex gap-2 items-center">
+                      <input
+                        value={entry.color}
+                        onChange={(e) =>
+                          setProductForm((prev) => {
+                            const next = [...(prev.colorImages || [])];
+                            next[idx] = { ...next[idx], color: e.target.value };
+                            return { ...prev, colorImages: next };
+                          })
+                        }
+                        placeholder="Color (e.g. Red)"
+                        className="border rounded-xl px-3 py-2 flex-1 text-sm"
+                      />
+                      <button
+                        type="button"
+                        className="text-xs text-red-500"
+                        onClick={() =>
+                          setProductForm((prev) => {
+                            const next = [...(prev.colorImages || [])];
+                            next.splice(idx, 1);
+                            return { ...prev, colorImages: next };
+                          })
+                        }
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={(entry.images || []).join(",")}
+                        onChange={(e) =>
+                          setProductForm((prev) => {
+                            const next = [...(prev.colorImages || [])];
+                            next[idx] = {
+                              ...next[idx],
+                              images: e.target.value
+                                .split(/[,]/)
+                                .map((u) => u.trim())
+                                .filter(Boolean)
+                            };
+                            return { ...prev, colorImages: next };
+                          })
+                        }
+                        placeholder="Image URLs (comma separated)"
+                        className="border rounded-xl px-3 py-2 flex-1 text-sm"
+                      />
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="text-sm"
+                        onChange={async (e) => {
+                          const files = Array.from(e.target.files || []);
+                          if (!files.length) return;
+                          const uploaded = [];
+                          for (const file of files) {
+                            const url = await handleGalleryUpload(file);
+                            if (url) uploaded.push(url);
+                          }
+                          if (uploaded.length) {
+                            setProductForm((prev) => {
+                              const next = [...(prev.colorImages || [])];
+                              const existing = next[idx]?.images || [];
+                              next[idx] = { ...next[idx], images: [...existing, ...uploaded] };
+                              return { ...prev, colorImages: next };
+                            });
+                          }
+                        }}
+                      />
+                    </div>
+                    {(entry.images || []).length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {entry.images.map((url, i) => (
+                          <div key={`${url}-${i}`} className="relative w-12 h-12 rounded-lg overflow-hidden border">
+                            <img src={resolveAsset(url)} alt="" className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              className="absolute top-0 right-0 text-[10px] bg-white/80 px-1"
+                              onClick={() =>
+                                setProductForm((prev) => {
+                                  const next = [...(prev.colorImages || [])];
+                                  const imgs = [...(next[idx]?.images || [])];
+                                  imgs.splice(i, 1);
+                                  next[idx] = { ...next[idx], images: imgs };
+                                  return { ...prev, colorImages: next };
+                                })
+                              }
+                            >
+                              ?
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {(productForm.colorImages || []).length === 0 && (
+                  <p className="text-xs text-gray-500">No color-specific galleries added.</p>
+                )}
+              </div>
+            </div>
+          </div>
+  );
+}
+
+function CollectionCard({ collection, onSave, onDelete, onHeroUpload, onGalleryUpload }) {
+  const [form, setForm] = useState({
+    title: collection.title,
+    subtitle: collection.subtitle || "",
+    description: collection.description || "",
+    ctaLabel: collection.ctaLabel || "",
+    heroImage: collection.heroImage || "",
+    accentColor: collection.accentColor || "#c1275a",
+    displayOnHome: collection.displayOnHome,
+    priority: collection.priority
+  });
+  const [gallery, setGallery] = useState(collection.heroImages || []);
+  const [galleryInput, setGalleryInput] = useState("");
+  const [uploadingGallery, setUploadingGallery] = useState(false);
+
+  useEffect(() => {
+    setForm({
+      title: collection.title,
+      subtitle: collection.subtitle || "",
+      description: collection.description || "",
+      ctaLabel: collection.ctaLabel || "",
+      heroImage: collection.heroImage || "",
+      accentColor: collection.accentColor || "#c1275a",
+      displayOnHome: collection.displayOnHome,
+      priority: collection.priority
+    });
+    setGallery(collection.heroImages || []);
+  }, [collection]);
+
+  const handleAddGalleryUrl = () => {
+    if (!galleryInput.trim()) return;
+    setGallery((prev) => [...prev, galleryInput.trim()]);
+    setGalleryInput("");
+  };
+
+  const handleRemoveGallery = (index) => {
+    setGallery((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUploadGallery = async (file) => {
+    if (!file) return;
+    setUploadingGallery(true);
+    try {
+      const url = await onGalleryUpload(file);
+      if (url) {
+        setGallery((prev) => [...prev, url]);
+      }
+    } finally {
+      setUploadingGallery(false);
+    }
+  };
+
+  return (
+    <div className="border border-gray-200 rounded-2xl p-4">
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-gray-900">{collection.title}</h3>
+          <span className="text-xs text-gray-500">
+            {collection.products?.length || 0} items linked
+          </span>
+        </div>
+        <input
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          placeholder="Collection title"
+          className="border rounded-xl px-3 py-2 text-sm"
+        />
+        <input
+          value={form.subtitle}
+          onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
+          placeholder="Subtitle"
+          className="border rounded-xl px-3 py-2 text-sm"
+        />
+        <textarea
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          placeholder="Description"
+          className="border rounded-xl px-3 py-2 text-sm"
+          rows={2}
+        />
+        <div className="grid md:grid-cols-2 gap-3">
+          <input
+            value={form.ctaLabel}
+            onChange={(e) => setForm({ ...form, ctaLabel: e.target.value })}
+            placeholder="CTA label"
+            className="border rounded-xl px-3 py-2 text-sm"
+          />
+          <div>
+            <input
+              value={form.heroImage}
+              onChange={(e) => setForm({ ...form, heroImage: e.target.value })}
+              placeholder="Hero image URL"
+              className="border rounded-xl px-3 py-2 text-sm w-full"
+            />
+            <input
+              type="file"
+              className="mt-2 text-sm"
+              onChange={(e) => onHeroUpload(e.target.files?.[0])}
+            />
+            <div className="flex gap-2 items-center mt-2">
+              <button
+                type="button"
+                onClick={() => setForm((prev) => ({ ...prev, heroImage: "" }))}
+                className="text-xs text-gray-500 underline"
+              >
+                Remove hero image
+              </button>
+              {form.heroImage && (
+                <a
+                  href={form.heroImage}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-pink-600"
+                >
+                  View
+                </a>
+              )}
+            </div>
+            {form.heroImage && (
+              <div className="mt-2 rounded-xl overflow-hidden border bg-gray-50">
+                <img
+                  src={resolveAsset(form.heroImage)}
+                  alt="Hero preview"
+                  className="w-full h-48 object-cover"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="border border-gray-100 rounded-2xl p-3">
+          <p className="text-xs uppercase tracking-[0.4em] text-gray-400">Hero gallery</p>
+          <div className="flex flex-wrap gap-3 mt-3">
+            {gallery.map((image, index) => (
+              <div key={`${image}-${index}`} className="w-16 h-16 rounded-xl overflow-hidden relative">
+              <img src={resolveAsset(image)} alt="gallery" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveGallery(index)}
+                  className="absolute top-1 right-1 bg-black/60 text-white text-[10px] px-1 rounded"
+                >
+                  ?
+                </button>
+              </div>
+            ))}
+            {gallery.length === 0 && (
+              <p className="text-xs text-gray-400">No gallery images yet</p>
+            )}
+          </div>
+          <div className="grid md:grid-cols-2 gap-3 mt-3">
+            <div className="flex gap-2">
+              <input
+                value={galleryInput}
+                onChange={(e) => setGalleryInput(e.target.value)}
+                placeholder="Image URL"
+                className="border rounded-xl px-3 py-2 text-sm flex-1"
+              />
+              <button
+                type="button"
+                onClick={handleAddGalleryUrl}
+                className="px-3 py-2 rounded-xl bg-gray-900 text-white text-sm"
+              >
+                Add
+              </button>
+            </div>
+            <div>
+              <input
+                type="file"
+                className="text-sm"
+                onChange={(e) => handleUploadGallery(e.target.files?.[0])}
+              />
+              {uploadingGallery && (
+                <p className="text-xs text-gray-400 mt-1">Uploading image...</p>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="grid md:grid-cols-3 gap-3">
+          <input
+            value={form.accentColor}
+            onChange={(e) => setForm({ ...form, accentColor: e.target.value })}
+            placeholder="#c1275a"
+            className="border rounded-xl px-3 py-2 text-sm"
+          />
+          <input
+            type="number"
+            value={form.priority}
+            onChange={(e) => setForm({ ...form, priority: Number(e.target.value) })}
+            placeholder="Priority"
+            className="border rounded-xl px-3 py-2 text-sm"
+          />
+          <label className="flex items-center gap-2 text-sm text-gray-600">
+            <input
+              type="checkbox"
+              checked={form.displayOnHome}
+              onChange={(e) => setForm({ ...form, displayOnHome: e.target.checked })}
+            />
+            Show on home
+          </label>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <button
+            onClick={() => onSave({ ...form, heroImages: gallery })}
+            className="px-4 py-2 bg-gray-900 text-white rounded-full"
+          >
+            Save collection
+          </button>
+          <button onClick={onDelete} className="text-gray-400">
+            Delete
+          </button>
         </div>
       </div>
     </div>
@@ -3194,17 +3533,17 @@ function OfferManager({ items, onSave, onDelete }) {
           >
             <div className="space-y-1">
               <p className="text-sm font-semibold text-gray-900">
-                {item.title} {item.tag && <span className="text-xs text-gray-500">• {item.tag}</span>}
+                {item.title} {item.tag && <span className="text-xs text-gray-500">? {item.tag}</span>}
               </p>
               {item.subtitle && <p className="text-xs text-gray-600">{item.subtitle}</p>}
               <div className="flex gap-2 text-[11px] text-gray-500">
                 <span>Order {item.order ?? 0}</span>
-                <span>•</span>
+                <span>?</span>
                 <span>{item.active === false ? "Hidden" : "Active"}</span>
               </div>
               {(item.ctaLabel || item.ctaLink) && (
                 <p className="text-xs text-pink-600">
-                  {item.ctaLabel || "CTA"} → {item.ctaLink || "/products"}
+                  {item.ctaLabel || "CTA"} ? {item.ctaLink || "/products"}
                 </p>
               )}
             </div>
@@ -3219,162 +3558,6 @@ function OfferManager({ items, onSave, onDelete }) {
           </div>
         ))}
         {items.length === 0 && <p className="text-sm text-gray-400">No offers yet.</p>}
-      </div>
-    </div>
-  );
-}
-
-function CollectionCard({ collection, onSave, onDelete, onHeroUpload, onGalleryUpload }) {
-  const [form, setForm] = useState({
-    title: collection.title || "",
-    slug: collection.slug || "",
-    subtitle: collection.subtitle || "",
-    description: collection.description || "",
-    ctaLabel: collection.ctaLabel || "",
-    heroImage: collection.heroImage || "",
-    tag: collection.tag || "",
-    order: collection.order || 0,
-    active: collection.active !== false,
-    displayOnHome: collection.displayOnHome !== false
-  });
-
-  useEffect(() => {
-    setForm({
-      title: collection.title || "",
-      slug: collection.slug || "",
-      subtitle: collection.subtitle || "",
-      description: collection.description || "",
-      ctaLabel: collection.ctaLabel || "",
-      heroImage: collection.heroImage || "",
-      tag: collection.tag || "",
-      order: collection.order || 0,
-      active: collection.active !== false,
-      displayOnHome: collection.displayOnHome !== false
-    });
-  }, [collection]);
-
-  const handleChange = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
-
-  return (
-    <div className="admin-card bg-white border border-gray-100 rounded-2xl p-4 space-y-3 shadow-sm">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-gray-400">Collection</p>
-          <h3 className="text-lg font-semibold text-gray-900">{form.title || "Untitled"}</h3>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => onSave(form)}
-            className="px-3 py-2 rounded-xl bg-gray-900 text-white text-xs font-semibold"
-          >
-            Save
-          </button>
-          <button
-            onClick={() => window.confirm("Delete this collection?") && onDelete()}
-            className="px-3 py-2 rounded-xl border border-red-200 text-red-600 text-xs"
-          >
-            Delete
-          </button>
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-[1.3fr,1fr] gap-4">
-        <div className="space-y-2">
-          <div className="rounded-xl overflow-hidden bg-gray-100 aspect-[16/9]">
-            {form.heroImage ? (
-              <img src={resolveAsset(form.heroImage)} alt={form.title} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">No hero image</div>
-            )}
-          </div>
-          <div className="flex gap-2 text-xs text-gray-600">
-            <label className="px-3 py-2 rounded-xl border border-gray-200 cursor-pointer bg-white">
-              Upload hero
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file && onHeroUpload) onHeroUpload(file);
-                  e.target.value = "";
-                }}
-              />
-            </label>
-            <label className="px-3 py-2 rounded-xl border border-gray-200 cursor-pointer bg-white">
-              Upload gallery
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file && onGalleryUpload) onGalleryUpload(file);
-                  e.target.value = "";
-                }}
-              />
-            </label>
-          </div>
-        </div>
-
-        <div className="space-y-2 text-sm">
-          <input
-            value={form.title}
-            onChange={(e) => handleChange("title", e.target.value)}
-            placeholder="Title"
-            className="border rounded-xl px-3 py-2 w-full"
-          />
-          <input
-            value={form.slug}
-            onChange={(e) => handleChange("slug", e.target.value)}
-            placeholder="Slug (unique)"
-            className="border rounded-xl px-3 py-2 w-full"
-          />
-          <input
-            value={form.subtitle}
-            onChange={(e) => handleChange("subtitle", e.target.value)}
-            placeholder="Subtitle"
-            className="border rounded-xl px-3 py-2 w-full"
-          />
-          <input
-            value={form.ctaLabel}
-            onChange={(e) => handleChange("ctaLabel", e.target.value)}
-            placeholder="CTA label"
-            className="border rounded-xl px-3 py-2 w-full"
-          />
-          <textarea
-            value={form.description}
-            onChange={(e) => handleChange("description", e.target.value)}
-            placeholder="Description"
-            className="border rounded-xl px-3 py-2 w-full"
-            rows={3}
-          />
-          <div className="flex gap-2 items-center">
-            <label className="flex items-center gap-2 text-xs text-gray-600">
-              <input
-                type="checkbox"
-                checked={form.active}
-                onChange={(e) => handleChange("active", e.target.checked)}
-              />
-              Active
-            </label>
-            <label className="flex items-center gap-2 text-xs text-gray-600">
-              <input
-                type="checkbox"
-                checked={form.displayOnHome}
-                onChange={(e) => handleChange("displayOnHome", e.target.checked)}
-              />
-              Show on home
-            </label>
-            <input
-              type="number"
-              value={form.order}
-              onChange={(e) => handleChange("order", Number(e.target.value) || 0)}
-              className="border rounded-xl px-2 py-1 text-xs w-24"
-              placeholder="Order"
-            />
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -3466,7 +3649,7 @@ function CollectionProductManager({ collection, products, onUpdate }) {
               <p className="text-sm font-semibold text-gray-900">{product.name}</p>
               <p className="text-xs text-gray-500">
                 {(getProductColorsLabel(product) || product.category) && (
-                  <span>{getProductColorsLabel(product) || product.category} • </span>
+                  <span>{getProductColorsLabel(product) || product.category} ? </span>
                 )}
                 Rs.{" "}
                 {new Intl.NumberFormat("en-IN").format(product.discountPrice || product.price || 0)}

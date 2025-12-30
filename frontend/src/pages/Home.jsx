@@ -4,6 +4,7 @@ import axios from "../api/axios";
 import { CartContext } from "../context/CartContext";
 import { setPageMeta } from "../utils/seo";
 import { buildAssetUrl } from "../utils/apiBase";
+import { resolveProductImage } from "../utils/productImages";
 import SupportFooter from "../components/SupportFooter";
 
 const BLANK_IMG = "data:image/gif;base64,R0lGODlhAQABAAD/ACw=";
@@ -66,14 +67,7 @@ const formatPrice = (value) =>
   }).format(value || 0)}`;
 
 const resolveAsset = (url, fallback) => buildAssetUrl(url, fallback);
-
-const resolveImage = (item) => {
-  const raw = item?.images?.[0];
-  if (!raw) {
-    return BLANK_IMG;
-  }
-  return resolveAsset(raw, BLANK_IMG);
-};
+const resolveImage = (item) => resolveProductImage(item, BLANK_IMG);
 
 const HeroBanner = ({ slides = [] }) => {
   const normalizedSlides =
@@ -166,7 +160,7 @@ const HeroBanner = ({ slides = [] }) => {
   return (
     <section className="bg-[var(--surface-muted)] py-8 sm:py-10">
       <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-0">
-        <div className="relative rounded-[28px] sm:rounded-[40px] overflow-hidden aspect-[4/5] sm:aspect-[16/9] min-h-[280px] sm:min-h-[420px] shadow-2xl">
+        <div className="relative rounded-[28px] sm:rounded-[40px] overflow-hidden aspect-[4/5] min-h-[280px] sm:min-h-[420px] shadow-2xl">
           {normalizedSlides.map((slide, index) => {
             const cover = slide.heroImage;
             const video = slide.heroVideo;
@@ -196,7 +190,7 @@ const HeroBanner = ({ slides = [] }) => {
                   <img
                     src={cover}
                     alt={slide.title || "Hero slide"}
-                    className="w-full h-full object-contain sm:object-cover object-center bg-[var(--surface)]"
+                    className="w-full h-full object-cover object-center bg-[var(--surface)]"
                     loading={isActive ? "eager" : "lazy"}
                     decoding="async"
                     fetchpriority={isActive ? "high" : "auto"}
@@ -496,6 +490,7 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
     "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1400&q=80"
   );
   const displayedProducts = useMemo(() => (products || []).slice(0, 4), [products]);
+  const viewAllLabel = collection?.title ? `View all ${collection.title}` : "View all";
 
   return (
     <section className="py-12 px-4">
@@ -509,7 +504,7 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
 
         {heroImage && (
           <div
-            className={`relative rounded-[28px] sm:rounded-[40px] overflow-hidden aspect-[4/5] sm:aspect-[21/9] min-h-[260px] sm:min-h-[320px] shadow-xl ${
+            className={`relative rounded-[28px] sm:rounded-[40px] overflow-hidden aspect-[16/9] min-h-[220px] sm:min-h-[320px] shadow-xl ${
               railLink ? "cursor-pointer" : ""
             }`}
             onClick={() => railLink && navigate(railLink)}
@@ -522,14 +517,14 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
                 navigate(railLink);
               }
             }}
-          >
-            <img
-              src={heroImage}
-              alt={collection?.title}
-              className="w-full h-full object-cover bg-[var(--surface-muted)]"
-              loading="lazy"
-              decoding="async"
-            />
+            >
+              <img
+                src={heroImage}
+                alt={collection?.title}
+                className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
             <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/20 to-transparent text-white p-8 flex flex-col justify-center max-w-lg space-y-4">
               <p className="text-xs uppercase tracking-[0.5em] text-[var(--accent)] opacity-90">
                         {collection?.tag || "Editor pick"}
@@ -570,11 +565,11 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
                 return (
                   <div
                     key={product._id}
-                    className="bg-white rounded-[28px] border border-gray-100 shadow-sm hover:-translate-y-1 transition"
+                    className="bg-white rounded-[28px] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition overflow-hidden"
                     onClick={() => navigate(`/product/${product._id}`)}
                   >
                     <div
-                      className="relative rounded-t-[28px] overflow-hidden bg-[#fdf9f5] flex items-center justify-center"
+                      className="relative rounded-t-[28px] overflow-hidden bg-gradient-to-b from-[#fdf9f5] to-white flex items-center justify-center"
                       style={{ aspectRatio: "3 / 4", minHeight: 260 }}
                     >
                       <img
@@ -585,25 +580,27 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
                         decoding="async"
                       />
                       {discountPercent ? (
-                        <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full">
+                        <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow-md">
                           -{discountPercent}%
                         </span>
                       ) : null}
                       {product.collections?.[0]?.title && (
-                        <span className="absolute top-3 right-3 bg-white/80 text-xs px-3 py-1 rounded-full text-gray-800">
+                        <span className="absolute top-3 right-3 bg-white/90 text-[11px] px-3 py-1 rounded-full text-gray-800 shadow">
                           {product.collections[0].title}
                         </span>
                       )}
                     </div>
-                    <div className="p-4 space-y-2">
+                    <div className="p-4 space-y-3">
                       <p className="text-[11px] uppercase tracking-[0.4em] text-gray-400">
                         {product.category || collection?.title}
                       </p>
-                      <h3 className="text-base font-semibold text-gray-900 line-clamp-2">{product.name}</h3>
-                        <div className="flex items-center gap-2 text-sm">
+                      <h3 className="text-base font-semibold text-gray-900 line-clamp-2 leading-snug">
+                        {product.name}
+                      </h3>
+                        <div className="flex items-baseline gap-2 text-sm">
                           <span className="text-lg font-semibold text-gray-900">{formatPrice(primaryPrice)}</span>
                           {product.discountPrice && (
-                            <span className="text-gray-400 line-through">{formatPrice(product.price)}</span>
+                            <span className="text-gray-400 line-through text-xs">{formatPrice(product.price)}</span>
                           )}
                         </div>
                         <button
@@ -612,14 +609,14 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
                             e.stopPropagation();
                             addToCart(product._id);
                           }}
-                          className="inline-flex items-center justify-center w-full mt-2 bg-gray-900 text-white text-sm font-semibold rounded-full px-4 py-2"
+                          className="inline-flex items-center justify-center w-full mt-2 bg-gray-900 text-white text-sm font-semibold rounded-full px-4 py-2 shadow-sm hover:shadow-md"
                         >
                           Add to cart
                         </button>
                         <button
                           type="button"
                           onClick={handleBuyNow}
-                          className="inline-flex items-center justify-center w-full mt-2 bg-gradient-to-r from-[var(--primary,#111)] to-[var(--accent,#333)] text-white text-sm font-semibold rounded-full px-4 py-2"
+                          className="inline-flex items-center justify-center w-full mt-2 bg-gradient-to-r from-[var(--primary,#111)] to-[var(--accent,#c58f2b)] text-white text-sm font-semibold rounded-full px-4 py-2 shadow-sm hover:shadow-md"
                         >
                           Buy now
                         </button>
@@ -629,6 +626,16 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
               })}
             </div>
           </>
+        )}
+        {railLink && (
+          <div className="text-center pt-2">
+            <button
+              className="inline-flex items-center justify-center px-5 py-2 rounded-full bg-[var(--primary)] text-white text-sm font-semibold shadow hover:-translate-y-0.5 transition"
+              onClick={() => navigate(railLink)}
+            >
+              {viewAllLabel}
+            </button>
+          </div>
         )}
       </div>
     </section>

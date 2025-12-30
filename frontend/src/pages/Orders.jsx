@@ -5,6 +5,7 @@ import axios from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
 import { CartContext } from "../context/CartContext";
 import { buildAssetUrl } from "../utils/apiBase";
+import { resolveProductImage } from "../utils/productImages";
 
 const formatPrice = (value) =>
   `Rs. ${new Intl.NumberFormat("en-IN", {
@@ -12,7 +13,7 @@ const formatPrice = (value) =>
   }).format(value || 0)}`;
 
 const BLANK_IMG = "data:image/gif;base64,R0lGODlhAQABAAD/ACw=";
-const resolveImage = (product) => buildAssetUrl(product?.images?.[0], BLANK_IMG);
+const resolveImage = (product) => resolveProductImage(product, BLANK_IMG);
 
 const statusLabels = {
   processing: "Processing",

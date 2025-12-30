@@ -2,6 +2,7 @@ import { useCart } from "../context/CartContext";
 import { Link } from "react-router-dom";
 import { useEffect } from "react";
 import { buildAssetUrl } from "../utils/apiBase";
+import { resolveProductImage } from "../utils/productImages";
 
 const FALLBACK_IMAGE = "https://placehold.co/120x150?text=Saree";
 
@@ -14,7 +15,7 @@ const getTotal = (items = []) =>
     0
   );
 
-const resolveImage = (product) => buildAssetUrl(product?.images?.[0], FALLBACK_IMAGE);
+const resolveImage = (product) => resolveProductImage(product, FALLBACK_IMAGE);
 
 export default function CartDrawer({ open, close }) {
   const { cart, increaseQty, decreaseQty, removeFromCart } = useCart();

@@ -3,9 +3,10 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import axios from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
 import { buildAssetUrl } from "../utils/apiBase";
+import { resolveProductImage } from "../utils/productImages";
 
 const BLANK_IMG = "data:image/gif;base64,R0lGODlhAQABAAD/ACw=";
-const resolveImage = (product) => buildAssetUrl(product?.images?.[0], BLANK_IMG);
+const resolveImage = (product) => resolveProductImage(product, BLANK_IMG);
 
 const formatPrice = (value) =>
   `Rs. ${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(value || 0)}`;

@@ -7,6 +7,7 @@ import { CartContext } from "../context/CartContext";
 import BrandLoader from "../components/BrandLoader";
 import { setPageMeta } from "../utils/seo";
 import { buildAssetUrl } from "../utils/apiBase";
+import { resolveProductImage } from "../utils/productImages";
 
 const BLANK_IMG = "data:image/gif;base64,R0lGODlhAQABAAD/ACw=";
 
@@ -33,8 +34,7 @@ const parseNumber = (value) => {
   return 0;
 };
 
-const resolveImage = (item, index = 0) =>
-  buildAssetUrl(item?.images?.[index] || item?.images?.[0], BLANK_IMG);
+const resolveImage = (item, index = 0) => resolveProductImage(item, BLANK_IMG, index);
 
 export default function ProductList() {
   const location = useLocation();

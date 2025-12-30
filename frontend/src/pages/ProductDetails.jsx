@@ -241,12 +241,12 @@ export default function ProductDetails() {
         <div className="max-w-6xl mx-auto px-4 lg:px-0 py-10 space-y-12">
         <div className="grid lg:grid-cols-[1.1fr,0.9fr] gap-10 items-start">
           <div>
-            <div className="relative rounded-3xl overflow-hidden bg-white shadow">
+            <div className="relative rounded-3xl overflow-hidden bg-white shadow aspect-[3/4] min-h-[320px]">
               {activeImage ? (
                 <img
                   src={activeImage}
                   alt={product.name}
-                  className="w-full max-h-[520px] object-contain bg-white cursor-zoom-in"
+                  className="absolute inset-0 w-full h-full object-cover bg-white cursor-zoom-in"
                   loading="eager"
                   fetchpriority="high"
                   decoding="async"
@@ -257,7 +257,9 @@ export default function ProductDetails() {
                   }}
                 />
               ) : (
-                <div className="w-full h-[520px] flex items-center justify-center text-gray-400">No image</div>
+                <div className="w-full h-full flex items-center justify-center text-gray-400 bg-white">
+                  No image
+                </div>
               )}
               {gallery.length > 1 && (
                 <>
