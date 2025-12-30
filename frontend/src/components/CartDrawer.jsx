@@ -101,14 +101,14 @@ export default function CartDrawer({ open, close }) {
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => decreaseQty(item.product?._id)}
+                        onClick={() => decreaseQty(item._id)}
                         className="w-8 h-8 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] hover:border-[var(--muted)] transition"
                       >
                         -
                       </button>
                       <span className="text-sm font-semibold text-[var(--ink)]">{item.quantity}</span>
                       <button
-                        onClick={() => increaseQty(item.product?._id)}
+                        onClick={() => increaseQty(item._id)}
                         className="w-8 h-8 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] hover:border-[var(--muted)] transition"
                       >
                         +
@@ -118,7 +118,7 @@ export default function CartDrawer({ open, close }) {
 
                   <button
                     className="text-[var(--muted)] hover:text-[var(--ink)]"
-                    onClick={() => removeFromCart(item.product?._id)}
+                    onClick={() => removeFromCart(item._id)}
                     aria-label="Remove item"
                   >
                     ×
