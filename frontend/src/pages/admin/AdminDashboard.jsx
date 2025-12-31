@@ -1242,6 +1242,22 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleCollectionGalleryUpload = async (collectionId, file) => {
+    if (!file) return;
+    const url = await handleGalleryUpload(file);
+    if (!url) return;
+    const existing =
+      collections.find((c) => c._id === collectionId)?.heroImages?.filter(Boolean) || [];
+    await handleUpdateCollection(collectionId, { heroImages: [...existing, url] });
+  };
+
+  const handleCollectionGalleryDelete = async (collectionId, imageUrl) => {
+    const existing =
+      collections.find((c) => c._id === collectionId)?.heroImages?.filter(Boolean) || [];
+    const next = existing.filter((img) => img !== imageUrl);
+    await handleUpdateCollection(collectionId, { heroImages: next });
+  };
+
   const handleProductVideoUpload = async (file) => {
     if (!file) return;
     try {
@@ -2476,7 +2492,10 @@ export default function AdminDashboard() {
                   onSave={(payload) => handleUpdateCollection(collection._id, payload)}
                   onDelete={() => handleDeleteCollection(collection._id)}
                   onHeroUpload={(file) => handleHeroUpload(collection._id, file)}
-                  onGalleryUpload={(file) => handleGalleryUpload(file)}
+                  onGalleryUpload={(file) => handleCollectionGalleryUpload(collection._id, file)}
+                  onGalleryDelete={(imageUrl) =>
+                    handleCollectionGalleryDelete(collection._id, imageUrl)
+                  }
                 />
                 <CollectionProductManager
                   collection={collection}
@@ -3224,7 +3243,14 @@ function OfferManager({ items, onSave, onDelete }) {
   );
 }
 
-function CollectionCard({ collection, onSave, onDelete, onHeroUpload, onGalleryUpload }) {
+function CollectionCard({
+  collection,
+  onSave,
+  onDelete,
+  onHeroUpload,
+  onGalleryUpload,
+  onGalleryDelete
+}) {
   const [form, setForm] = useState({
     title: collection.title || "",
     slug: collection.slug || "",
@@ -3315,6 +3341,32 @@ function CollectionCard({ collection, onSave, onDelete, onHeroUpload, onGalleryU
               />
             </label>
           </div>
+
+          {collection.heroImages?.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.28em] text-gray-400">Gallery images</p>
+              <div className="flex flex-wrap gap-2">
+                {collection.heroImages.map((img) => (
+                  <div
+                    key={img}
+                    className="relative w-20 h-14 rounded-lg overflow-hidden border border-gray-200 bg-gray-50"
+                  >
+                    <img src={resolveAsset(img)} alt="" className="w-full h-full object-cover" />
+                    {onGalleryDelete && (
+                      <button
+                        type="button"
+                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white border text-[10px] shadow"
+                        onClick={() => onGalleryDelete(img)}
+                        aria-label="Remove gallery image"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="space-y-2 text-sm">
