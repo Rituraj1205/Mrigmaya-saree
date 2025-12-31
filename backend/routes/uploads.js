@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import path from "path";
+import { v2 as cloudinary } from "cloudinary";
 import { auth, adminOnly } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -24,6 +25,11 @@ const upload = multer({
   }
 });
 
+const cloudinaryEnabled = Boolean(process.env.CLOUDINARY_URL);
+if (cloudinaryEnabled) {
+  cloudinary.config({ cloudinary_url: process.env.CLOUDINARY_URL });
+}
+
 router.post("/", (req, res, next) => {
   upload.single("file")(req, res, (err) => {
     if (err) {
@@ -32,6 +38,24 @@ router.post("/", (req, res, next) => {
     }
     try {
       if (!req.file) return res.status(400).json({ msg: "File missing" });
+      // If Cloudinary is configured, push to Cloudinary for persistent storage.
+      if (cloudinaryEnabled) {
+        cloudinary.uploader
+          .upload(req.file.path, {
+            folder: process.env.CLOUDINARY_FOLDER || "mrigmaya",
+            resource_type: "auto"
+          })
+          .then((result) => {
+            res.json({ url: result.secure_url || result.url });
+          })
+          .catch((uploadErr) => {
+            console.error("Cloudinary upload failed:", uploadErr);
+            res.status(500).json({ msg: "Upload failed", error: uploadErr?.message || "Cloud upload failed" });
+          });
+        return;
+      }
+
+      // Fallback: local uploads (non-persistent on hosted platform)
       const url = `/uploads/${req.file.filename}`;
       res.json({ url });
     } catch (e) {
