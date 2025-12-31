@@ -575,7 +575,7 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
                       <img
                         src={resolveImage(product)}
                         alt={product.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                         loading="lazy"
                         decoding="async"
                       />
