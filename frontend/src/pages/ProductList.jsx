@@ -62,6 +62,9 @@ export default function ProductList() {
   const [basePriceCap, setBasePriceCap] = useState(4000);
   const [showCategorySheet, setShowCategorySheet] = useState(false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 12;
+  const maxPages = 3;
   const activeMoodId = selectedMoodId || moodIdParam;
 
   useEffect(() => {
@@ -315,6 +318,21 @@ export default function ProductList() {
     return data;
   }, [products, category, priceCap, search, sortBy, collectionFilter, selectedIds, selectedMoodId, moodFilters]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredProducts]);
+
+  const totalPages = useMemo(() => {
+    const pages = Math.ceil(filteredProducts.length / pageSize) || 1;
+    return Math.min(maxPages, pages);
+  }, [filteredProducts.length]);
+
+  const paginatedProducts = useMemo(() => {
+    const safePage = Math.min(Math.max(currentPage, 1), totalPages);
+    const start = (safePage - 1) * pageSize;
+    return filteredProducts.slice(start, start + pageSize);
+  }, [filteredProducts, currentPage, totalPages]);
+
   const clearFilters = () => {
     setCategory("All Sarees");
     setSelectedMoodId("");
@@ -405,7 +423,7 @@ export default function ProductList() {
                 <div key={index} className="product-card skeleton" />
               ))}
 
-            {!loading && filteredProducts.length === 0 && (
+            {!loading && paginatedProducts.length === 0 && (
               <div className="empty-state">
                 <p>No sarees match these filters yet.</p>
                 <p className="text-sm text-gray-500">Try clearing filters or searching a simpler term.</p>
@@ -416,7 +434,7 @@ export default function ProductList() {
             )}
 
             {!loading &&
-              filteredProducts.map((item) => {
+              paginatedProducts.map((item) => {
                 const isCustom = Boolean(item.isCustom);
                 const targetId = item.productId || item._id;
                 const isClickable = !isCustom || Boolean(item.productId);
@@ -489,6 +507,28 @@ export default function ProductList() {
                 );
               })}
           </div>
+
+          {!loading && paginatedProducts.length > 0 && (
+            <div className="pagination-controls">
+              <button
+                type="button"
+                className="pill pill--ghost"
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </button>
+              <span className="pagination-meta">{`Page ${currentPage} of ${totalPages}`}</span>
+              <button
+                type="button"
+                className="pill pill--ghost"
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
 
         {showCategorySheet && (

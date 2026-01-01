@@ -1019,46 +1019,53 @@ h4 {
 .usp-rail__track {
   display: inline-flex;
   flex-wrap: nowrap;
-  gap: 2rem;
-  animation-duration: 8s;
+  gap: 0.9rem;
+  padding: 14px 14px;
   will-change: transform;
+  position: relative;
+  animation: uspMarquee 8s linear infinite;
 }
 
 .usp-rail__item {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  min-width: 118px;
-  padding: 6px 8px;
-  border-radius: 12px;
+  gap: 3px;
+  min-width: 100px;
+  padding: 4px 4px;
+  border-radius: 10px;
   color: #1f4c8c;
   background: transparent;
   border: 1px solid transparent;
-  animation: uspPop 0.3s ease forwards;
-  opacity: 0;
-  transform: translateY(4px);
+  animation: none;
+  opacity: 1;
+  transform: none;
   transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+  will-change: opacity, transform, filter;
+}
+
+.usp-rail__item.slide-cycle {
+  animation: uspSlideFade 6s ease-in-out infinite;
 }
 
 .usp-rail__icon {
-  width: 32px;
-  height: 32px;
+  width: 64px;
+  height: 64px;
   display: grid;
   place-items: center;
 }
 
 .usp-icon-svg,
 .usp-icon-img {
-  width: 28px;
-  height: 28px;
+  width: 52px;
+  height: 52px;
   color: #1f4c8c;
 }
 
 .usp-rail__title {
   font-weight: 600;
   color: #1f4c8c;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   line-height: 1.25;
   margin: 0;
   letter-spacing: 0.01em;
@@ -1079,10 +1086,50 @@ h4 {
   }
 }
 
+@keyframes uspSlideFade {
+  0% {
+    opacity: 0;
+    transform: translateX(60px);
+    filter: blur(6px);
+  }
+  12%,
+  35% {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0);
+  }
+  60% {
+    opacity: 0;
+    transform: translateX(-60px);
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-60px);
+    filter: blur(6px);
+  }
+}
+
 .usp-rail__item:hover {
   transform: translateY(-2px);
   border-color: rgba(31, 76, 140, 0.2);
   background: rgba(31, 76, 140, 0.05);
+}
+
+@keyframes uspMarquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-33.3333%);
+  }
+}
+
+@media (max-width: 640px) {
+  .usp-rail__track {
+    gap: 0.6rem;
+    animation-duration: 3.6s;
+  }
 }
 
 .nav-search {

@@ -41,23 +41,23 @@ const heroFallbacks = [
 ];
 
 const uspFallback = [
-  { title: "Handcrafted sarees", sub: "Curated villages to runway", icon: "🧵" },
-  { title: "Ships in 24 hrs", sub: "Across 18,000+ pincodes", icon: "✈️" },
-  { title: "Complimentary fall & pico", sub: "Ready to drape", icon: "🎀" },
-  { title: "Dedicated stylists", sub: "WhatsApp concierge", icon: "💬" }
+  { title: "Free shipping", sub: "Pan-India delivery" },
+  { title: "Easy returns", sub: "Hassle-free pickup" },
+  { title: "Secure payments", sub: "UPI / Cards / Wallets", icon: "??" },
+  { title: "Cash on delivery", sub: "Pay after delivery", icon: "??" },
+  { title: "Genuine quality", sub: "Trusted artisan partners" },
+  { title: "3,000+ styles", sub: "Fresh drops weekly" },
+  { title: "Express dispatch", sub: "Ships in 24 hrs" },
+  { title: "Dedicated stylists", sub: "WhatsApp support", icon: "??" }
 ];
 
 const storyFallback = {
-  title: "Designed in Surat, loved across India",
-  description: "We travel across handloom clusters, collaborate with weavers, and finish each saree with couture level detailing. Every edit mirrors the premium boutique experience but is crafted only for saree loyalists.",
-  ctaLabel: "Shop handcrafted edits",
+  title: "",
+  description: "",
+  ctaLabel: "",
   ctaLink: "/products",
   meta: {
-    stats: [
-      { value: "120+", label: "Exclusive drops" },
-      { value: "48 hrs", label: "Average dispatch" },
-      { value: "4.8/5", label: "Shopper rating" }
-    ]
+    stats: []
   }
 };
 
@@ -340,7 +340,7 @@ const resolveIcon = (icon, fallbackLabel = "") => {
 
 const USPStrip = ({ items = uspFallback }) => {
   if (!items.length) return null;
-  const marqueeItems = [...items, ...items];
+  const marqueeItems = [...items, ...items, ...items]; // triple for a fuller marquee
   return (
     <section className="usp-rail relative overflow-hidden py-4">
       <div className="usp-rail__track marquee-track flex gap-8 items-center py-2">
@@ -350,7 +350,6 @@ const USPStrip = ({ items = uspFallback }) => {
             <div
               key={`${usp._id || usp.title}-${index}`}
               className="usp-rail__item"
-              style={{ animationDelay: `${(index % items.length) * 60}ms` }}
             >
               <div className="usp-rail__icon">{resolveIcon(icon, usp.title || usp.sub || usp.subtitle)}</div>
               <p className="usp-rail__title">{usp.title}</p>
@@ -644,7 +643,9 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
 
 const StorySection = ({ story = storyFallback }) => {
   if (!story) return null;
-  const stats = story.meta?.stats || story.stats || storyFallback.meta?.stats || [];
+  const stats = story?.meta?.stats || story?.stats || [];
+  const hasContent = Boolean(story?.title || story?.description || story?.ctaLabel || stats.length);
+  if (!hasContent) return null;
   return (
     <section className="story-hero relative overflow-hidden py-16 px-4">
       <div className="story-hero__glow story-hero__glow--one" aria-hidden="true" />
@@ -654,9 +655,13 @@ const StorySection = ({ story = storyFallback }) => {
           <span className="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" />
           <span className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">Brand story</span>
         </div>
-        <h3 className="text-3xl md:text-4xl font-semibold text-[var(--ink)] drop-shadow-sm">{story.title}</h3>
-        <p className="text-lg md:text-xl text-[var(--muted)] max-w-4xl mx-auto leading-relaxed">{story.description}</p>
-        {story.ctaLabel && (
+        {story?.title && (
+          <h3 className="text-3xl md:text-4xl font-semibold text-[var(--ink)] drop-shadow-sm">{story.title}</h3>
+        )}
+        {story?.description && (
+          <p className="text-lg md:text-xl text-[var(--muted)] max-w-4xl mx-auto leading-relaxed">{story.description}</p>
+        )}
+        {story?.ctaLabel && (
           <Link
             to={story.ctaLink || "/products"}
             className="inline-flex items-center justify-center px-7 py-3 rounded-full text-white text-sm font-semibold shadow-lg story-hero__cta"
@@ -902,3 +907,4 @@ export default function Home() {
     </div>
   );
 }
+
