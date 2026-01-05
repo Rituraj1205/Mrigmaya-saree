@@ -86,7 +86,7 @@ export default function Navbar() {
             <span className="brand-mark">
               <img src={logo} alt="Mrigmaya logo" className="brand-logo" />
             </span>
-            <span className="brand-tagline">Handcrafted sarees · couture drapes</span>
+            <span className="brand-tagline">Crafted for the modern queen</span>
           </Link>
 
           <div className="nav-links nav-links--hero nav-hero__links text-sm font-semibold">
