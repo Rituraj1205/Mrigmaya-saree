@@ -16,7 +16,7 @@ const pages = {
       "Working hours: 10:00 AM – 6:30 PM (Mon – Sat)",
       "WhatsApp: +91 99998 38768",
       "Call us: +91 99998 38768",
-      "Email: care@sudathi.com"
+      "Email: care@mrigmaya.com"
     ]
   },
   "return-policy": {
@@ -38,13 +38,14 @@ const pages = {
   "privacy-policy": {
     title: "Privacy policy",
     sections: [
-      "What we collect: name, email, and profile image when you sign in with Google; contact and shipping details you provide at checkout; and order history. We do not collect or store your card details—payments are handled by our PCI-compliant gateway.",
-      "How we use it: to create and secure your account, show your profile, process and deliver orders, provide support, and send essential service updates. We do not sell your data.",
+      "What we collect: your name, email, and profile image when you sign in with Google; contact and shipping details you provide at checkout; and order history. We do not collect or store card details—payments stay with our PCI-compliant gateway.",
+      "How we use it: to create and secure your Mrigmaya account, show your profile, process and deliver orders, provide support, and send essential service updates. We do not sell your data.",
       "Storage and security: data is stored in our database with access limited to authorized staff. All traffic is served over HTTPS.",
       "Sharing: only with service providers needed to run the app (for example, payments, hosting, analytics, delivery partners). We do not share data with advertisers.",
-      "Your controls: you can request correction or deletion, or ask us to disconnect your Google account by emailing care@sudathi.com. You can also revoke Google access from your Google Account settings.",
-      "Data retention: we retain account and order data for as long as your account is active or as required for legal, tax, and fraud-prevention purposes, then delete or anonymize it.",
-      "Contact: care@sudathi.com for any questions about data use or this policy."
+      "Google data: Google profile data (name, email, profile image) is used only for sign-in and account purposes. You can revoke access in your Google Account settings or ask us to disconnect it.",
+      "Your controls: email care@mrigmaya.com to correct or delete your data, or to disconnect your Google account. We will remove associated tokens when you disconnect.",
+      "Data retention: we keep account and order data while your account is active or as required for legal, tax, and fraud-prevention purposes, then delete or anonymize it.",
+      "Contact: care@mrigmaya.com for any questions about data use or this policy."
     ]
   },
   "terms-of-service": {

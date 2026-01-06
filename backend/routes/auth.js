@@ -88,8 +88,19 @@ const {
 } = process.env;
 
 const hasGoogleConfig = Boolean(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
-const buildGoogleRedirectUri = (req) =>
-  (GOOGLE_REDIRECT_URI || `${req.protocol}://${req.get("host")}/api/auth/google/callback`).trim();
+const GOOGLE_CALLBACK_PATH = "/api/auth/google/callback";
+const buildGoogleRedirectUri = (req) => {
+  const fallback = `${req.protocol}://${req.get("host")}${GOOGLE_CALLBACK_PATH}`;
+  const raw = (GOOGLE_REDIRECT_URI || fallback || "").trim();
+  const cleaned = raw.split(/\s+/)[0]; // Drop accidental notes/comments after the URL.
+  try {
+    const url = new URL(cleaned);
+    return `${url.origin}${url.pathname || GOOGLE_CALLBACK_PATH}`;
+  } catch (err) {
+    console.warn("Invalid GOOGLE_REDIRECT_URI, using fallback:", cleaned);
+    return fallback;
+  }
+};
 const getGoogleClient = (redirectUri) => new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, redirectUri);
 
 const issueJwt = (userId) => jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: "7d" });

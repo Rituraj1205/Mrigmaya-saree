@@ -1,9 +1,9 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
+import { lazy, Suspense, useEffect } from "react";
 
 import Navbar from "./components/Navbar";
 import SupportFooter from "./components/SupportFooter";
-import { lazy, Suspense } from "react";
 
 const Home = lazy(() => import("./pages/Home"));
 const ProductList = lazy(() => import("./pages/ProductList"));
@@ -27,6 +27,10 @@ function AppRoutes() {
   const location = useLocation();
   const hideNavbar = location.pathname.startsWith("/admin");
   const hideFooter = hideNavbar;
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [location.pathname]);
 
   return (
     <Suspense fallback={<div className="p-6 text-sm text-gray-600">Loading...</div>}>
