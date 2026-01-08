@@ -53,7 +53,7 @@ export default function ProductList() {
   const [collectionFilter, setCollectionFilter] = useState("");
   const [priceCap, setPriceCap] = useState(4000);
   const [maxPrice, setMaxPrice] = useState(6000);
-  const [sortBy, setSortBy] = useState("featured");
+  const [sortBy, setSortBy] = useState("new");
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
   const [collectionSlugParam, setCollectionSlugParam] = useState("");
@@ -322,6 +322,15 @@ export default function ProductList() {
     setCurrentPage(1);
   }, [filteredProducts]);
 
+  useEffect(() => {
+    const anchor = document.querySelector(".product-area");
+    if (anchor) {
+      anchor.scrollIntoView({ behavior: "auto", block: "start" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+  }, [currentPage]);
+
   const totalPages = useMemo(() => {
     const pages = Math.ceil(filteredProducts.length / pageSize) || 1;
     return Math.min(maxPages, pages);
@@ -338,7 +347,7 @@ export default function ProductList() {
     setSelectedMoodId("");
     setCollectionFilter("");
     setPriceCap(basePriceCap);
-    setSortBy("featured");
+    setSortBy("new");
     setSearch("");
   };
 

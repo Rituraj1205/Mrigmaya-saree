@@ -160,7 +160,7 @@ const HeroBanner = ({ slides = [] }) => {
   return (
     <section className="bg-[var(--surface-muted)] py-8 sm:py-10">
       <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-0">
-        <div className="relative rounded-[28px] sm:rounded-[40px] overflow-hidden aspect-[4/5] min-h-[280px] sm:min-h-[420px] shadow-2xl">
+        <div className="relative rounded-[28px] sm:rounded-[40px] overflow-hidden aspect-[4/5] min-h-[280px] sm:min-h-[420px] lg:aspect-[16/7] lg:max-h-[520px] shadow-2xl">
           {normalizedSlides.map((slide, index) => {
             const cover = slide.heroImage;
             const video = slide.heroVideo;
@@ -190,7 +190,7 @@ const HeroBanner = ({ slides = [] }) => {
                   <img
                     src={cover}
                     alt={slide.title || "Hero slide"}
-                    className="w-full h-full object-cover object-center bg-[var(--surface)]"
+                    className="hero-slide__image"
                     loading={isActive ? "eager" : "lazy"}
                     decoding="async"
                     fetchpriority={isActive ? "high" : "auto"}
@@ -520,7 +520,7 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
               <img
                 src={heroImage}
                 alt={collection?.title}
-                className="w-full h-full object-cover"
+                className="featured-rail__image"
                 loading="lazy"
                 decoding="async"
               />

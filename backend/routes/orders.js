@@ -4,6 +4,7 @@ import crypto from "crypto";
 import Order from "../models/Order.js";
 import Cart from "../models/Cart.js";
 import Coupon from "../models/Coupon.js";
+import StoreSettings from "../models/StoreSettings.js";
 import { computeDiscount, normalizeCode } from "./coupons.js";
 import { auth, adminOnly } from "../middleware/auth.js";
 import Twilio from "twilio";
@@ -24,6 +25,14 @@ const statusLabels = {
 const returnStatusOptions = ["none", "requested", "approved", "rejected", "received", "refunded"];
 
 const router = express.Router();
+
+const getStoreSettings = async () => {
+  let settings = await StoreSettings.findOne({ key: "store" });
+  if (!settings) {
+    settings = await StoreSettings.create({ key: "store" });
+  }
+  return settings;
+};
 
 const razorpayConfigured =
   process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET;
@@ -156,7 +165,7 @@ router.get("/", auth, async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate("items.product", "name images price productCode")
+      .populate("items.product", "name images colorImages price productCode")
       .populate("user", "mobile name"),
     Order.countDocuments(query)
   ]);
@@ -167,7 +176,7 @@ router.get("/", auth, async (req, res) => {
 router.get("/:id", auth, async (req, res) => {
   const isAdmin = req.user.role === "admin";
   const order = await Order.findById(req.params.id)
-    .populate("items.product", "name images price productCode")
+    .populate("items.product", "name images colorImages price productCode")
     .populate("user", "mobile name");
   if (!order) return res.status(404).json({ msg: "Order not found" });
   if (!isAdmin && order.user?.toString() !== req.user._id.toString()) {
@@ -212,6 +221,10 @@ router.post("/", auth, async (req, res) => {
 
   const { cart, amount: originalAmount } = prepared;
   const paymentMethod = req.body.paymentMethod === "UPI" ? "UPI" : "COD";
+  const settings = await getStoreSettings();
+  if (paymentMethod === "COD" && settings.codEnabled === false) {
+    return res.status(400).json({ msg: "Cash on Delivery is currently disabled." });
+  }
   const couponCodeRaw = req.body.couponCode;
   const { address: shippingAddress, missing } = sanitizeAddress(
     req.body.shippingAddress,

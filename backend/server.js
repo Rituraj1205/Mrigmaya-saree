@@ -24,6 +24,7 @@ import uploadRoutes from "./routes/uploads.js";
 import homeSectionRoutes from "./routes/homeSections.js";
 import categoryRoutes from "./routes/categories.js";
 import couponRoutes from "./routes/coupons.js";
+import settingsRoutes from "./routes/settings.js";
 
 const app = express();
 const allowedOrigins = (process.env.FRONTEND_ORIGIN || "")
@@ -77,6 +78,7 @@ app.use("/api/uploads", uploadRoutes);
 app.use("/api/home-sections", homeSectionRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/coupons", couponRoutes);
+app.use("/api/settings", settingsRoutes);
 
 const startServer = async () => {
   await connectDB();

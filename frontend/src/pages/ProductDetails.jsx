@@ -41,6 +41,7 @@ export default function ProductDetails() {
   const [zoomSrc, setZoomSrc] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
+  const [codEnabled, setCodEnabled] = useState(true);
   const inStock = (product?.stock || 0) > 0;
 
   useEffect(() => {
@@ -81,6 +82,19 @@ export default function ProductDetails() {
         setRelated(all);
       })
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    axios
+      .get("/settings/public")
+      .then((res) => {
+        if (typeof res.data?.codEnabled === "boolean") {
+          setCodEnabled(res.data.codEnabled);
+        }
+      })
+      .catch(() => {
+        // keep defaults
+      });
   }, []);
 
   useEffect(() => {
@@ -246,7 +260,7 @@ export default function ProductDetails() {
                 <img
                   src={activeImage}
                   alt={product.name}
-                  className="absolute inset-0 w-full h-full object-cover bg-white cursor-zoom-in"
+                  className="absolute inset-0 w-full h-full object-contain bg-white cursor-zoom-in"
                   loading="eager"
                   fetchpriority="high"
                   decoding="async"
@@ -339,7 +353,7 @@ export default function ProductDetails() {
                   Free returns within 7 days
                 </span>
                 <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100">
-                  COD & UPI available
+                  {codEnabled ? "COD & UPI available" : "UPI available"}
                 </span>
               </div>
               <div className="flex flex-wrap gap-3 pt-2">

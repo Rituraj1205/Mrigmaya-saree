@@ -1,14 +1,17 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useContext } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 
 export default function GoogleAuth() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
+  const handledRef = useRef(false);
 
   useEffect(() => {
+    if (handledRef.current) return;
+    handledRef.current = true;
+
     const token = params.get("token");
     const name = params.get("name");
     const email = params.get("email");
@@ -22,7 +25,9 @@ export default function GoogleAuth() {
 
     if (token) {
       login(token, { name, email });
-      navigate(redirect || "/", { replace: true });
+      localStorage.setItem("login_success", "1");
+      // Use hard navigation to avoid router re-renders getting throttled.
+      window.location.replace(redirect || "/");
     } else {
       navigate("/login", { replace: true });
     }

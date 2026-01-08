@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState } from "react";
+import { useContext, useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axios from "../api/axios";
@@ -30,6 +30,7 @@ export default function Checkout() {
   const { cart, fetchCart } = useContext(CartContext);
   const navigate = useNavigate();
   const [paymentMethod, setPaymentMethod] = useState("COD");
+  const [codEnabled, setCodEnabled] = useState(true);
   const [placing, setPlacing] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [couponResult, setCouponResult] = useState(null);
@@ -44,6 +45,25 @@ export default function Checkout() {
     pincode: ""
   });
   const [customerNote, setCustomerNote] = useState("");
+
+  useEffect(() => {
+    axios
+      .get("/settings/public")
+      .then((res) => {
+        if (typeof res.data?.codEnabled === "boolean") {
+          setCodEnabled(res.data.codEnabled);
+        }
+      })
+      .catch(() => {
+        // keep defaults
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!codEnabled && paymentMethod === "COD") {
+      setPaymentMethod("UPI");
+    }
+  }, [codEnabled, paymentMethod]);
 
   const total = useMemo(
     () =>
@@ -61,6 +81,11 @@ export default function Checkout() {
   const discountRate = paymentMethod === "UPI" ? 0.1 : 0;
   const discountAmount = Math.round(totalAfterCoupon * discountRate);
   const payableTotal = Math.max(0, totalAfterCoupon - discountAmount);
+
+  const availablePaymentOptions = useMemo(() => {
+    if (codEnabled) return paymentOptions;
+    return paymentOptions.filter((option) => option.value !== "COD");
+  }, [codEnabled]);
 
   const validateAddress = () => {
     if (!token) {
@@ -450,11 +475,15 @@ export default function Checkout() {
         <h2 className="text-lg font-semibold text-gray-900">Payment method</h2>
         <div className="flex flex-wrap gap-2 text-xs text-gray-600">
           <span className="px-3 py-1 rounded-full bg-green-50 text-green-700 border border-green-100">UPI accepted</span>
-          <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100">COD available</span>
+          {codEnabled && (
+            <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100">
+              COD available
+            </span>
+          )}
           <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">Secure Razorpay checkout</span>
         </div>
         <div className="space-y-3">
-          {paymentOptions.map((option) => (
+          {availablePaymentOptions.map((option) => (
             <label
               key={option.value}
               className="flex items-center gap-3 border rounded-2xl px-4 py-3 cursor-pointer hover:border-pink-200"

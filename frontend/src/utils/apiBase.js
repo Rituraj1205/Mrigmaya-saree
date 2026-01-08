@@ -1,13 +1,13 @@
 const envApiBase = (import.meta.env.VITE_API_BASE || "").trim();
 const envAssetBase = (import.meta.env.VITE_ASSET_BASE || "").trim();
 
-// Default to relative /api so dev can proxy and production still works.
-export const API_BASE = envApiBase || "/api";
+// Prefer explicit env values; default to production host so static builds work without a reverse proxy.
+export const API_BASE = envApiBase || "https://mrigmaya.com/api";
 
 // Assets: prefer explicit asset base, else derive from full API base, else fall back to production host.
 const derivedAssetBase = API_BASE.startsWith("http")
   ? API_BASE.replace(/\/api\/?$/, "")
-  : "https://mrigmaya-saree.onrender.com";
+  : "https://mrigmaya.com";
 
 export const ASSET_BASE = envAssetBase || derivedAssetBase;
 

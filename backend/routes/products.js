@@ -182,6 +182,7 @@ router.get("/", async (req, res) => {
   const includeInactive = req.query.includeInactive === "true";
   const [products, activeCategories] = await Promise.all([
     Product.find()
+      .sort({ createdAt: -1 })
       .populate("collections", "title slug")
       .populate("categoryRef", "name slug"),
     includeInactive

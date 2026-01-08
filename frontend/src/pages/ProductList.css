@@ -379,7 +379,7 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   background: #fdf9f5;
   transition: opacity 0.35s ease, transform 0.35s ease;
 }
@@ -402,7 +402,7 @@
 }
 
 .product-card:hover .card-image__img {
-  transform: scale(1.05);
+  transform: scale(1);
 }
 
 .product-card:hover .card-image__img--hover {
@@ -633,7 +633,8 @@
 .related-card__image img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background: #f9f5f1;
 }
 
 .related-card__badge {

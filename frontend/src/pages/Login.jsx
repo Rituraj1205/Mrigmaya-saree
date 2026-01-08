@@ -115,8 +115,8 @@ export default function Login() {
     try {
       const res = await axios.post("/auth/login-password", { email: trimmed, password });
       login(res.data.token, res.data.user);
-      toast.success("Logged in");
-      navigate("/");
+      localStorage.setItem("login_success", "1");
+      navigate("/", { replace: true });
     } catch (err) {
       toast.error(err.response?.data?.msg || "Login failed");
     }
@@ -137,8 +137,8 @@ export default function Login() {
         mobile: mobile.trim() || undefined
       });
       login(res.data.token, res.data.user);
-      toast.success("Account created");
-      navigate("/");
+      localStorage.setItem("login_success", "1");
+      navigate("/", { replace: true });
     } catch (err) {
       toast.error(err.response?.data?.msg || "Could not create account");
     }

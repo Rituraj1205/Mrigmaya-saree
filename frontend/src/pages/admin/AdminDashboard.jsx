@@ -4,8 +4,11 @@ import toast from "react-hot-toast";
 import axios from "../../api/axios";
 import { AuthContext } from "../../context/AuthContext";
 import { buildAssetUrl } from "../../utils/apiBase";
+import { resolveProductImage } from "../../utils/productImages";
 
 const resolveAsset = (url) => buildAssetUrl(url, "");
+const BLANK_IMG = "data:image/gif;base64,R0lGODlhAQABAAD/ACw=";
+const resolveOrderImage = (product) => resolveProductImage(product, BLANK_IMG);
 
 const isVideoLink = (url = "") => {
   const normalized = url.split("?")[0].toLowerCase();
@@ -153,6 +156,8 @@ export default function AdminDashboard() {
   const [heroLinkInput, setHeroLinkInput] = useState("");
   const [heroUploadBusy, setHeroUploadBusy] = useState(false);
   const [loginUploadBusy, setLoginUploadBusy] = useState(false);
+  const [codEnabled, setCodEnabled] = useState(true);
+  const [settingsSaving, setSettingsSaving] = useState(false);
   const [moodForm, setMoodForm] = useState({
     title: "",
     subtitle: "",
@@ -194,6 +199,7 @@ export default function AdminDashboard() {
     { id: "collections", label: "Collections" },
     { id: "products", label: "Products" },
     { id: "coupons", label: "Coupons" },
+    // { id: "payments", label: "Payments" },
     { id: "homepage", label: "Homepage Slider" },
     { id: "usp", label: "Offers Rail" },
     { id: "orders", label: "Orders" },
@@ -336,6 +342,7 @@ export default function AdminDashboard() {
     fetchCategories();
     fetchCoupons();
     fetchOrders();
+    fetchSettings();
   }, [token]);
 
   useEffect(() => {
@@ -1242,6 +1249,35 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchSettings = async () => {
+    if (!token) return;
+    try {
+      const res = await axios.get("/settings", authConfig);
+      if (typeof res.data?.codEnabled === "boolean") {
+        setCodEnabled(res.data.codEnabled);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const saveSettings = async () => {
+    if (!token) return;
+    setSettingsSaving(true);
+    try {
+      const res = await axios.put("/settings", { codEnabled }, authConfig);
+      if (typeof res.data?.codEnabled === "boolean") {
+        setCodEnabled(res.data.codEnabled);
+      }
+      toast.success("Payment settings updated");
+    } catch (err) {
+      console.error(err);
+      toast.error("Could not update payment settings");
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
   const handleCollectionGalleryUpload = async (collectionId, file) => {
     if (!file) return;
     const url = await handleGalleryUpload(file);
@@ -1569,6 +1605,40 @@ export default function AdminDashboard() {
           </section>
         )}
 
+        {activePanel === "payments" && (
+          <section className="card-shell p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.4em] text-gray-400">Payments</p>
+                <h2 className="text-2xl font-semibold text-gray-900">Payment options</h2>
+                <p className="text-sm text-gray-500">Turn payment methods on/off for checkout.</p>
+              </div>
+            </div>
+
+            <div className="bg-white border border-gray-100 rounded-2xl p-5 space-y-4">
+              <label className="flex items-center gap-3 text-sm text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={codEnabled}
+                  onChange={(e) => setCodEnabled(e.target.checked)}
+                />
+                Enable Cash on Delivery (COD)
+              </label>
+              <p className="text-xs text-gray-500">
+                When off, COD will be hidden at checkout and blocked on the backend.
+              </p>
+              <button
+                type="button"
+                onClick={saveSettings}
+                disabled={settingsSaving}
+                className="bg-gray-900 text-white px-5 py-2 rounded-full text-sm font-semibold disabled:opacity-70"
+              >
+                {settingsSaving ? "Saving..." : "Save changes"}
+              </button>
+            </div>
+          </section>
+        )}
+
         {activePanel === "orders" && (
           <section className="bg-white rounded-3xl shadow p-6">
             <div className="flex items-center justify-between mb-4">
@@ -1610,7 +1680,15 @@ export default function AdminDashboard() {
                         </p>
                         <div className="text-[11px] text-gray-500 space-y-1 mt-1">
                           {order.items.map((item, idx) => (
-                            <div key={`${item.product}-${idx}`} className="flex flex-wrap gap-1 items-center">
+                            <div key={`${item.product}-${idx}`} className="flex flex-wrap gap-2 items-center">
+                              <img
+                                src={resolveOrderImage(item.product)}
+                                alt={item.product?.name || "Item"}
+                                className="w-7 h-7 rounded-md border border-gray-200 object-cover bg-white"
+                                onError={(e) => {
+                                  e.currentTarget.src = BLANK_IMG;
+                                }}
+                              />
                               <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 border border-gray-200">
                                 {item.product?.name || "Item"}
                               </span>
@@ -1629,7 +1707,7 @@ export default function AdminDashboard() {
                                   {item.selectedSize}
                                 </span>
                               )}
-                              <span className="text-gray-400">×{item.quantity}</span>
+                              <span className="text-gray-400">x{item.quantity}</span>
                             </div>
                           ))}
                         </div>

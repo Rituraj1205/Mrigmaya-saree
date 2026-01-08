@@ -109,12 +109,27 @@ export default function Orders() {
 
   const uniqueAddresses = useMemo(() => {
     const acc = [];
+    const seen = new Set();
+    const normalizeText = (value) =>
+      String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+    const normalizePhone = (value) => String(value || "").replace(/\D/g, "");
     orders.forEach((order) => {
       const addr = order.shippingAddress || {};
-      const key = `${addr.name || ""}-${addr.phone || ""}-${addr.line1 || ""}-${addr.city || ""}-${addr.pincode || ""}`;
-      if (addr.name && !acc.find((a) => a.key === key)) {
-        acc.push({ key, ...addr });
-      }
+      const key = [
+        normalizeText(addr.name),
+        normalizePhone(addr.phone || order.customerContact),
+        normalizeText(addr.line1),
+        normalizeText(addr.line2),
+        normalizeText(addr.city),
+        normalizeText(addr.state),
+        normalizeText(addr.pincode)
+      ].join("|");
+      if (!addr.name || seen.has(key)) return;
+      seen.add(key);
+      acc.push({ key, ...addr });
     });
     return acc;
   }, [orders]);
@@ -267,7 +282,7 @@ export default function Orders() {
             </Link>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
             {sortedOrders.map((order) => {
               const status = order.status || "processing";
               const paymentStatus = order.paymentStatus || "cod_pending";
@@ -339,13 +354,12 @@ export default function Orders() {
                         >
                           <div className="flex items-center gap-3">
                             <img
-                              src={
-                                item.product?.images?.length
-                                  ? resolveImage(item.product)
-                                  : BLANK_IMG
-                              }
+                              src={resolveImage(item.product)}
                               alt={item.product?.name || "Product"}
                               className="w-14 h-14 object-cover rounded-xl border border-gray-100"
+                              onError={(e) => {
+                                e.currentTarget.src = BLANK_IMG;
+                              }}
                             />
                             <div>
                               <p className="font-semibold text-gray-900">

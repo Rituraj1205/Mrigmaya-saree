@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { lazy, Suspense, useEffect } from "react";
 
 import Navbar from "./components/Navbar";
@@ -30,7 +31,14 @@ function AppRoutes() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
-  }, [location.pathname]);
+  }, [location.pathname, location.search, location.hash]);
+
+  useEffect(() => {
+    if (localStorage.getItem("login_success") === "1") {
+      localStorage.removeItem("login_success");
+      toast.success("Login successful");
+    }
+  }, [location.pathname, location.search, location.hash]);
 
   return (
     <Suspense fallback={<div className="p-6 text-sm text-gray-600">Loading...</div>}>
