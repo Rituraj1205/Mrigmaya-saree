@@ -7,16 +7,18 @@ import { auth, adminOnly } from "../middleware/auth.js";
 const router = express.Router();
 const upload = multer({
   dest: "uploads/",
-  limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB max
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB max
   fileFilter: (req, file, cb) => {
     const allowed = [
       "image/jpeg",
       "image/png",
       "image/heic",
       "image/heif",
+      "image/avif",
       "image/webp",
       "image/gif",
       "video/mp4",
+      "video/quicktime",
       "video/webm",
       "video/ogg"
     ];

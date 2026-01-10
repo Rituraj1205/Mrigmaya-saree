@@ -1,4 +1,4 @@
-const defaultImage = new URL("../assets/flogo-removebg-preview.png", import.meta.url).href;
+const defaultImage = new URL("../assets/logo.png", import.meta.url).href;
 
 const upsertMeta = (attr, key, value) => {
   if (!value) return;

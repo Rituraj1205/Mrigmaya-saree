@@ -232,7 +232,7 @@ export default function AdminDashboard() {
     return true;
   };
 
-  const validateMediaFile = (file, maxMb = 20) => {
+  const validateMediaFile = (file, maxMb = 50) => {
     if (!file) return false;
     const isImage = file.type?.startsWith("image/");
     const isVideo = file.type?.startsWith("video/");
@@ -935,7 +935,7 @@ export default function AdminDashboard() {
       fetchHomeSections();
     } catch (err) {
       console.error(err);
-      toast.error("Could not upload slides");
+      toast.error(err.response?.data?.msg || "Could not upload slides");
     } finally {
       setHeroUploadBusy(false);
     }
@@ -968,6 +968,19 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error(err);
       toast.error("Could not update slide");
+    }
+  };
+
+  const handleHeroMobileToggle = async (slideId, showOnMobile) => {
+    const slide = heroSlides.find((item) => item._id === slideId);
+    const nextMeta = { ...(slide?.meta || {}), showOnMobile };
+    try {
+      await axios.put(`/home-sections/${slideId}`, { meta: nextMeta }, authConfig);
+      logChange(`Slide ${showOnMobile ? "shown" : "hidden"} on mobile`);
+      fetchHomeSections();
+    } catch (err) {
+      console.error(err);
+      toast.error("Could not update mobile visibility");
     }
   };
 
@@ -2651,6 +2664,7 @@ export default function AdminDashboard() {
                     index={index}
                     isLast={index === heroSlides.length - 1}
                     onToggle={(next) => handleHeroToggle(slide._id, next)}
+                    onMobileToggle={(next) => handleHeroMobileToggle(slide._id, next)}
                     onDelete={() => handleHeroDelete(slide._id)}
                     onMoveUp={() => handleHeroMove(slide._id, "up")}
                     onMoveDown={() => handleHeroMove(slide._id, "down")}
@@ -2938,11 +2952,22 @@ export default function AdminDashboard() {
   );
 }
 
-function HeroSlideCard({ slide, index, isLast, onToggle, onDelete, onMoveUp, onMoveDown, onReorder }) {
+function HeroSlideCard({
+  slide,
+  index,
+  isLast,
+  onToggle,
+  onMobileToggle,
+  onDelete,
+  onMoveUp,
+  onMoveDown,
+  onReorder
+}) {
   const videoSrc = resolveAsset(slide.video || slide.heroVideo || slide.meta?.video || "");
   const imageSrc = resolveAsset(slide.image || slide.heroImage || (Array.isArray(slide.images) ? slide.images[0] : ""));
   const preview = videoSrc || imageSrc;
   const active = slide.active !== false;
+  const showOnMobile = slide?.meta?.showOnMobile === true;
   const isVideo = Boolean(videoSrc);
   return (
     <div
@@ -3001,6 +3026,14 @@ function HeroSlideCard({ slide, index, isLast, onToggle, onDelete, onMoveUp, onM
       <label className="flex items-center gap-2 text-sm text-gray-600">
         <input type="checkbox" checked={active} onChange={(e) => onToggle(e.target.checked)} />
         Show on homepage
+      </label>
+      <label className="flex items-center gap-2 text-sm text-gray-600">
+        <input
+          type="checkbox"
+          checked={showOnMobile}
+          onChange={(e) => onMobileToggle?.(e.target.checked)}
+        />
+        Show on mobile only
       </label>
       {(slide.title || slide.description) && (
         <div className="text-xs text-gray-500">

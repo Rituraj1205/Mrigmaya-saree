@@ -69,20 +69,29 @@ const formatPrice = (value) =>
 const resolveAsset = (url, fallback) => buildAssetUrl(url, fallback);
 const resolveImage = (item) => resolveProductImage(item, BLANK_IMG);
 
-const HeroBanner = ({ slides = [] }) => {
+const HeroBanner = ({ slides = [], isMobile = false }) => {
   const normalizedSlides =
     slides
       ?.map((slide) => {
-        const source =
-          slide?.heroImage ||
-          slide?.image ||
-          slide?.mobileImage ||
-          slide?.desktopImage ||
-          slide?.cover ||
-          slide?.banner ||
-          slide?.meta?.image ||
-          slide?.meta?.cover ||
-          (Array.isArray(slide?.images) ? slide.images[0] : null);
+        const source = isMobile
+          ? slide?.mobileImage ||
+            slide?.heroImage ||
+            slide?.image ||
+            slide?.desktopImage ||
+            slide?.cover ||
+            slide?.banner ||
+            slide?.meta?.image ||
+            slide?.meta?.cover ||
+            (Array.isArray(slide?.images) ? slide.images[0] : null)
+          : slide?.heroImage ||
+            slide?.image ||
+            slide?.mobileImage ||
+            slide?.desktopImage ||
+            slide?.cover ||
+            slide?.banner ||
+            slide?.meta?.image ||
+            slide?.meta?.cover ||
+            (Array.isArray(slide?.images) ? slide.images[0] : null);
         const coverSource = typeof source === "string" ? source.trim() : source;
         const rawVideo = slide?.heroVideo || slide?.video || slide?.meta?.video;
         const videoSource = typeof rawVideo === "string" ? rawVideo.trim() : rawVideo;
@@ -158,9 +167,9 @@ const HeroBanner = ({ slides = [] }) => {
     Boolean(active?.badge || active?.tag);
 
   return (
-    <section className="bg-[var(--surface-muted)] py-8 sm:py-10">
-      <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-0">
-        <div className="relative rounded-[28px] sm:rounded-[40px] overflow-hidden aspect-[4/5] min-h-[280px] sm:min-h-[420px] lg:aspect-[16/7] lg:max-h-[520px] shadow-2xl">
+    <section className="hero-banner hero-fullbleed">
+      <div className="hero-fullbleed__inner">
+        <div className="hero-banner__frame">
           {normalizedSlides.map((slide, index) => {
             const cover = slide.heroImage;
             const video = slide.heroVideo;
@@ -169,7 +178,7 @@ const HeroBanner = ({ slides = [] }) => {
             return (
               <div
                 key={slide._id || slide.title || index}
-                className={`absolute inset-0 transition-all duration-700 ease-out ${
+                className={`hero-slide absolute inset-0 transition-all duration-700 ease-out ${
                   isActive ? "opacity-100 scale-100" : "opacity-0 scale-105"
                 }`}
               >
@@ -196,25 +205,23 @@ const HeroBanner = ({ slides = [] }) => {
                     fetchpriority={isActive ? "high" : "auto"}
                   />
                 )}
-              <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/25 to-transparent" />
               </div>
             );
           })}
-
           {hasCopy && (
-            <div className="relative z-10 p-8 lg:p-14 max-w-2xl text-white space-y-5">
+            <div className="hero-banner__copy">
               {(active?.badge || active?.tag) && (
-                <span className="text-xs uppercase tracking-[0.5em] text-[var(--accent)] opacity-80">
+                <span className="hero-banner__badge">
                   {active.badge || active.tag}
                 </span>
               )}
               {headingCopy && (
                 <>
-                  <h1 className="text-4xl lg:text-5xl font-semibold leading-tight drop-shadow">
+                  <h1 className="hero-banner__title">
                     {headingCopy}
                   </h1>
                   {supportingCopy && (
-                    <p className="text-base text-gray-100/90">{supportingCopy}</p>
+                    <p className="hero-banner__support">{supportingCopy}</p>
                   )}
                 </>
               )}
@@ -222,7 +229,7 @@ const HeroBanner = ({ slides = [] }) => {
                 {active?.ctaLabel && (
                   <Link
                     to={active.ctaLink || "/products"}
-                    className="bg-white/95 text-gray-900 px-6 py-3 rounded-full text-sm font-semibold shadow-lg"
+                    className="hero-banner__cta"
                   >
                     {active.ctaLabel}
                   </Link>
@@ -230,7 +237,7 @@ const HeroBanner = ({ slides = [] }) => {
                 {active?.secondaryCtaLabel && (
                   <Link
                     to={active.secondaryCtaLink || "/products"}
-                    className="text-white text-sm font-semibold flex items-center gap-1"
+                    className="hero-banner__cta hero-banner__cta--ghost"
                   >
                     {active.secondaryCtaLabel} &gt;
                   </Link>
@@ -431,7 +438,7 @@ const USPStrip = ({ items = uspFallback }) => {
                   <img
                     src={cover}
                     alt={card.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                     loading="lazy"
                     decoding="async"
                   />
@@ -503,9 +510,7 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
 
         {heroImage && (
           <div
-            className={`relative rounded-[28px] sm:rounded-[40px] overflow-hidden aspect-[16/9] min-h-[220px] sm:min-h-[320px] shadow-xl ${
-              railLink ? "cursor-pointer" : ""
-            }`}
+            className={`featured-hero ${railLink ? "featured-hero--clickable" : ""}`}
             onClick={() => railLink && navigate(railLink)}
             role={railLink ? "button" : undefined}
             tabIndex={railLink ? 0 : undefined}
@@ -516,17 +521,17 @@ const ProductRail = ({ collection, products, loading, error, addToCart }) => {
                 navigate(railLink);
               }
             }}
-            >
-              <img
-                src={heroImage}
-                alt={collection?.title}
-                className="featured-rail__image"
-                loading="lazy"
-                decoding="async"
-              />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/20 to-transparent text-white p-8 flex flex-col justify-center max-w-lg space-y-4">
+          >
+            <img
+              src={heroImage}
+              alt={collection?.title}
+              className="featured-rail__image"
+              loading="lazy"
+              decoding="async"
+            />
+            <div className="featured-hero__copy">
               <p className="text-xs uppercase tracking-[0.5em] text-[var(--accent)] opacity-90">
-                        {collection?.tag || "Editor pick"}
+                {collection?.tag || "Editor pick"}
               </p>
               <h3 className="text-3xl font-semibold">{collection?.title}</h3>
               {description && <p className="text-sm text-white/80">{description}</p>}
@@ -748,6 +753,7 @@ export default function Home() {
   const [collectionsLoading, setCollectionsLoading] = useState(true);
   const [homeLoading, setHomeLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     setPageMeta({
@@ -758,6 +764,24 @@ export default function Home() {
   }, []);
   const [collectionsError, setCollectionsError] = useState("");
   const [homeError, setHomeError] = useState("");
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 640px)");
+    const handleChange = () => setIsMobile(media.matches);
+    handleChange();
+    if (media.addEventListener) {
+      media.addEventListener("change", handleChange);
+    } else {
+      media.addListener(handleChange);
+    }
+    return () => {
+      if (media.removeEventListener) {
+        media.removeEventListener("change", handleChange);
+      } else {
+        media.removeListener(handleChange);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -875,12 +899,17 @@ export default function Home() {
         const videoRaw = slide?.heroVideo || slide?.video || slide?.meta?.video;
         const hasImage = typeof imageRaw === "string" ? imageRaw.trim() : Boolean(imageRaw);
         const hasVideo = typeof videoRaw === "string" ? videoRaw.trim() : Boolean(videoRaw);
-        return slide?.active !== false && (hasImage || hasVideo);
+        const showOnMobile = slide?.meta?.showOnMobile === true;
+        const isActive = slide?.active !== false;
+        const canShow = isMobile ? showOnMobile : isActive && !showOnMobile;
+        return canShow && (hasImage || hasVideo);
       });
 
   return (
     <div className="bg-[var(--bg)] text-[var(--ink)] home-shell">
-      {heroSlidesToShow.length > 0 && <HeroBanner slides={heroSlidesToShow} />}
+      {heroSlidesToShow.length > 0 && (
+        <HeroBanner slides={heroSlidesToShow} isMobile={isMobile} />
+      )}
       <USPStrip items={uspItems.length ? uspItems : uspFallback} />
       {homeError && (
         <div className="max-w-6xl mx-auto px-4 text-sm text-amber-600">{homeError}</div>
