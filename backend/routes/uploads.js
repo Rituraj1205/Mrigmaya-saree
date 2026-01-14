@@ -1,12 +1,18 @@
 import express from "express";
+import fs from "fs";
 import multer from "multer";
 import path from "path";
+import { fileURLToPath } from "url";
 import { v2 as cloudinary } from "cloudinary";
 import { auth, adminOnly } from "../middleware/auth.js";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const uploadDir = path.resolve(__dirname, "../uploads");
+fs.mkdirSync(uploadDir, { recursive: true });
+
 const router = express.Router();
 const upload = multer({
-  dest: "uploads/",
+  dest: uploadDir,
   limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB max
   fileFilter: (req, file, cb) => {
     const allowed = [

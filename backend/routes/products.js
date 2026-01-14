@@ -1,14 +1,21 @@
 import express from "express";
+import fs from "fs";
 import multer from "multer";
 import mongoose from "mongoose";
+import path from "path";
+import { fileURLToPath } from "url";
 import Product from "../models/Product.js";
 import Collection from "../models/Collection.js";
 import Category from "../models/Category.js";
 import { auth, adminOnly } from "../middleware/auth.js";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const uploadDir = path.resolve(__dirname, "../uploads");
+fs.mkdirSync(uploadDir, { recursive: true });
+
 const router = express.Router();
 const upload = multer({
-  dest: "uploads/",
+  dest: uploadDir,
   limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB max
   fileFilter: (req, file, cb) => {
     const allowed = [

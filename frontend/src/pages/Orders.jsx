@@ -14,6 +14,7 @@ const formatPrice = (value) =>
 
 const BLANK_IMG = "data:image/gif;base64,R0lGODlhAQABAAD/ACw=";
 const resolveImage = (product) => resolveProductImage(product, BLANK_IMG);
+const resolveReturnImage = (url) => buildAssetUrl(url, "");
 
 const statusLabels = {
   processing: "Processing",
@@ -530,6 +531,24 @@ export default function Orders() {
                             )}
                             {order.returnNote && (
                               <p className="text-xs text-gray-500">Note: {order.returnNote}</p>
+                            )}
+                            {(order.returnImages || []).length > 0 && (
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                {order.returnImages.map((url, idx) => {
+                                  const href = resolveReturnImage(url);
+                                  return (
+                                    <a
+                                      key={`${order._id}-return-${idx}`}
+                                      href={href}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="block w-16 h-16 rounded-lg overflow-hidden border border-gray-200"
+                                    >
+                                      <img src={href} alt="Return" className="w-full h-full object-cover" />
+                                    </a>
+                                  );
+                                })}
+                              </div>
                             )}
                           </div>
                         )}

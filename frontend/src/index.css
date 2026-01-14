@@ -246,7 +246,7 @@ h4 {
   .hero-banner__frame {
     aspect-ratio: 4 / 5;
     min-height: 320px;
-    border-radius: 16px;
+    border-radius: 0;
   }
 
   .hero-banner__copy {
@@ -261,7 +261,7 @@ h4 {
 
 @media (min-width: 641px) {
   .hero-banner__frame {
-    --hero-vert-pad: 10px;
+    --hero-vert-pad: 0;
   }
 }
 

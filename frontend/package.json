@@ -2,7 +2,6 @@
   "name": "saree-ecom-frontend",
   "version": "1.0.0",
   "type": "module",
-
   "private": true,
   "scripts": {
     "dev": "vite",
@@ -13,6 +12,7 @@
     "axios": "^1.6.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-easy-crop": "^5.5.6",
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^6.16.0"
   },

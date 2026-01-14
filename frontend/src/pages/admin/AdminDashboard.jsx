@@ -1,4 +1,5 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import Cropper from "react-easy-crop";
 import { useNavigate, Navigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axios from "../../api/axios";
@@ -9,6 +10,54 @@ import { resolveProductImage } from "../../utils/productImages";
 const resolveAsset = (url) => buildAssetUrl(url, "");
 const BLANK_IMG = "data:image/gif;base64,R0lGODlhAQABAAD/ACw=";
 const resolveOrderImage = (product) => resolveProductImage(product, BLANK_IMG);
+const HERO_CROP_ASPECT = 3 / 1;
+
+const createImage = (url) =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener("load", () => resolve(image));
+    image.addEventListener("error", (err) => reject(err));
+    image.src = url;
+  });
+
+const getCroppedBlob = async (imageSrc, cropPixels, outputType = "image/jpeg") => {
+  const image = await createImage(imageSrc);
+  const canvas = document.createElement("canvas");
+  canvas.width = cropPixels.width;
+  canvas.height = cropPixels.height;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(
+    image,
+    cropPixels.x,
+    cropPixels.y,
+    cropPixels.width,
+    cropPixels.height,
+    0,
+    0,
+    cropPixels.width,
+    cropPixels.height
+  );
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error("Crop failed"));
+          return;
+        }
+        resolve(blob);
+      },
+      outputType,
+      0.92
+    );
+  });
+};
+
+const buildCroppedFile = async (imageSrc, cropPixels, originalName = "hero") => {
+  const blob = await getCroppedBlob(imageSrc, cropPixels, "image/jpeg");
+  const safeBase = originalName.replace(/\.[^/.]+$/, "").trim() || "hero";
+  const name = `${safeBase}-cropped.jpg`;
+  return new File([blob], name, { type: blob.type });
+};
 
 const isVideoLink = (url = "") => {
   const normalized = url.split("?")[0].toLowerCase();
@@ -155,6 +204,15 @@ export default function AdminDashboard() {
   });
   const [heroLinkInput, setHeroLinkInput] = useState("");
   const [heroUploadBusy, setHeroUploadBusy] = useState(false);
+  const heroUploadQueueRef = useRef([]);
+  const heroUploadOrderRef = useRef(0);
+  const heroCropUrlRef = useRef("");
+  const [heroCropOpen, setHeroCropOpen] = useState(false);
+  const [heroCropSrc, setHeroCropSrc] = useState("");
+  const [heroCropFile, setHeroCropFile] = useState(null);
+  const [heroCrop, setHeroCrop] = useState({ x: 0, y: 0 });
+  const [heroZoom, setHeroZoom] = useState(1);
+  const [heroCroppedArea, setHeroCroppedArea] = useState(null);
   const [loginUploadBusy, setLoginUploadBusy] = useState(false);
   const [codEnabled, setCodEnabled] = useState(true);
   const [settingsSaving, setSettingsSaving] = useState(false);
@@ -915,30 +973,108 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleHeroFileUpload = async (files) => {
-    if (!files?.length) return;
-    setHeroUploadBusy(true);
-    try {
-      let order = highestHeroOrder + 1;
-      for (const file of Array.from(files)) {
+  const resetHeroCropState = () => {
+    if (heroCropUrlRef.current) {
+      URL.revokeObjectURL(heroCropUrlRef.current);
+      heroCropUrlRef.current = "";
+    }
+    setHeroCropOpen(false);
+    setHeroCropSrc("");
+    setHeroCropFile(null);
+    setHeroCrop({ x: 0, y: 0 });
+    setHeroZoom(1);
+    setHeroCroppedArea(null);
+  };
+
+  const openHeroCrop = (file) => {
+    if (!file) return;
+    if (heroCropUrlRef.current) {
+      URL.revokeObjectURL(heroCropUrlRef.current);
+    }
+    const src = URL.createObjectURL(file);
+    heroCropUrlRef.current = src;
+    setHeroCropFile(file);
+    setHeroCropSrc(src);
+    setHeroCrop({ x: 0, y: 0 });
+    setHeroZoom(1);
+    setHeroCroppedArea(null);
+    setHeroCropOpen(true);
+  };
+
+  const finalizeHeroUploadQueue = () => {
+    heroUploadQueueRef.current = [];
+    heroUploadOrderRef.current = 0;
+    setHeroUploadBusy(false);
+    toast.success("Slides added");
+    logChange("Added hero slides via upload");
+    fetchHomeSections();
+  };
+
+  const processNextHeroUpload = async () => {
+    const next = heroUploadQueueRef.current.shift();
+    if (!next) {
+      finalizeHeroUploadQueue();
+      return;
+    }
+
+    const file = next.file;
+    if (file?.type?.startsWith("video/")) {
+      try {
         const mediaUrl = await uploadHeroMedia(file);
-        if (!mediaUrl) continue;
-        const payload =
-          file.type?.startsWith("video/") || isVideoLink(mediaUrl)
-            ? { video: mediaUrl }
-            : { image: mediaUrl };
-        await createHeroSlide(payload, order);
-        order += 1;
+        if (mediaUrl) {
+          await createHeroSlide({ video: mediaUrl }, heroUploadOrderRef.current);
+          heroUploadOrderRef.current += 1;
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error(err.response?.data?.msg || "Could not upload slide");
       }
-      toast.success("Slides added");
-      logChange("Added hero slides via upload");
-      fetchHomeSections();
+      processNextHeroUpload();
+      return;
+    }
+
+    openHeroCrop(file);
+  };
+
+  const handleHeroCropConfirm = async () => {
+    if (!heroCropFile || !heroCropSrc) {
+      resetHeroCropState();
+      processNextHeroUpload();
+      return;
+    }
+    try {
+      const fileToUpload = heroCroppedArea
+        ? await buildCroppedFile(heroCropSrc, heroCroppedArea, heroCropFile.name)
+        : heroCropFile;
+      const mediaUrl = await uploadHeroMedia(fileToUpload);
+      if (mediaUrl) {
+        await createHeroSlide({ image: mediaUrl }, heroUploadOrderRef.current);
+        heroUploadOrderRef.current += 1;
+      }
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.msg || "Could not upload slides");
+      toast.error(err.response?.data?.msg || "Could not upload slide");
     } finally {
-      setHeroUploadBusy(false);
+      resetHeroCropState();
+      processNextHeroUpload();
     }
+  };
+
+  const handleHeroCropCancel = () => {
+    resetHeroCropState();
+    processNextHeroUpload();
+  };
+
+  const handleHeroFileUpload = (files) => {
+    if (!files?.length) return;
+    if (heroUploadBusy || heroCropOpen) {
+      toast.error("Finish the current upload first");
+      return;
+    }
+    heroUploadQueueRef.current = Array.from(files).map((file) => ({ file }));
+    heroUploadOrderRef.current = highestHeroOrder + 1;
+    setHeroUploadBusy(true);
+    processNextHeroUpload();
   };
 
   const handleHeroLinkAdd = async () => {
@@ -2948,6 +3084,84 @@ export default function AdminDashboard() {
           </section>
         )}
       </main>
+      <HeroCropModal
+        open={heroCropOpen}
+        src={heroCropSrc}
+        crop={heroCrop}
+        zoom={heroZoom}
+        aspect={HERO_CROP_ASPECT}
+        onCropChange={setHeroCrop}
+        onZoomChange={setHeroZoom}
+        onCropComplete={(_, area) => setHeroCroppedArea(area)}
+        onCancel={handleHeroCropCancel}
+        onConfirm={handleHeroCropConfirm}
+      />
+    </div>
+  );
+}
+
+function HeroCropModal({
+  open,
+  src,
+  crop,
+  zoom,
+  aspect,
+  onCropChange,
+  onZoomChange,
+  onCropComplete,
+  onCancel,
+  onConfirm
+}) {
+  if (!open || !src) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
+      <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-200">
+          <p className="text-sm uppercase tracking-[0.3em] text-gray-400">Crop slide</p>
+          <h3 className="text-lg font-semibold text-gray-900">Adjust the hero image</h3>
+          <p className="text-xs text-gray-500 mt-1">Slider crop ratio is 3:1.</p>
+        </div>
+        <div className="relative h-72 sm:h-96 bg-black">
+          <Cropper
+            image={src}
+            crop={crop}
+            zoom={zoom}
+            aspect={aspect}
+            onCropChange={onCropChange}
+            onZoomChange={onZoomChange}
+            onCropComplete={onCropComplete}
+          />
+        </div>
+        <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
+          <label className="text-xs uppercase tracking-[0.3em] text-gray-400">Zoom</label>
+          <input
+            type="range"
+            min={1}
+            max={3}
+            step={0.05}
+            value={zoom}
+            onChange={(e) => onZoomChange(Number(e.target.value))}
+            className="flex-1"
+          />
+          <div className="flex gap-2 sm:ml-auto">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-4 py-2 rounded-full border border-gray-300 text-gray-700 text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onConfirm}
+              className="px-4 py-2 rounded-full bg-gray-900 text-white text-sm"
+            >
+              Crop & upload
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
