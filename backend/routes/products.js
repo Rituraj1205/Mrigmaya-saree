@@ -64,7 +64,8 @@ const buildProductPayload = async (req) => {
     flipkartLink: req.body.flipkartLink,
     price: coerceNumber(req.body.price),
     discountPrice: coerceNumber(req.body.discountPrice),
-    stock: coerceNumber(req.body.stock)
+    stock: coerceNumber(req.body.stock),
+    shippingTime: typeof req.body.shippingTime === "string" ? req.body.shippingTime.trim() : undefined
   };
 
   Object.keys(payload).forEach((key) => {

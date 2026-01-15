@@ -105,6 +105,7 @@ const emptyProduct = {
   price: "",
   discountPrice: "",
   stock: "",
+  shippingTime: "",
   images: "",
   colorImages: [],
   video: "",
@@ -1241,6 +1242,7 @@ export default function AdminDashboard() {
       formData.append("price", productForm.price || 0);
       if (productForm.discountPrice) formData.append("discountPrice", productForm.discountPrice);
       formData.append("stock", productForm.stock || 0);
+      formData.append("shippingTime", productForm.shippingTime || "");
       if (productForm.amazonLink) formData.append("amazonLink", productForm.amazonLink.trim());
       if (productForm.flipkartLink) formData.append("flipkartLink", productForm.flipkartLink.trim());
       formData.append("images", productForm.images);
@@ -1311,6 +1313,7 @@ export default function AdminDashboard() {
       price: product.price || "",
       discountPrice: product.discountPrice || "",
       stock: product.stock || "",
+      shippingTime: product.shippingTime || "",
       images: (product.images || []).join("\n"),
       colorImages: product.colorImages || [],
       video: product.video || "",
@@ -2320,6 +2323,15 @@ export default function AdminDashboard() {
               className="border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-pink-100"
               type="number"
             />
+            <input
+              value={productForm.shippingTime}
+              onChange={(e) =>
+                setProductForm({ ...productForm, shippingTime: e.target.value })
+              }
+              placeholder="Delivery time (e.g. 4-7 days)"
+              className="border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-pink-100"
+              type="text"
+            />
           </div>
 
           <textarea
@@ -2530,9 +2542,10 @@ export default function AdminDashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-gray-500">
-                  <th className="py-2">Name</th>
-                  <th>Price</th>
-                  <th>Collections</th>
+                    <th className="py-2">Name</th>
+                    <th>Price</th>
+                    <th>Delivery</th>
+                    <th>Collections</th>
                   <th>Moods</th>
                   <th></th>
                 </tr>
@@ -2540,8 +2553,9 @@ export default function AdminDashboard() {
               <tbody>
                 {products.map((product) => (
                   <tr key={product._id} className="border-t">
-                    <td className="py-2">{product.name}</td>
-                    <td>{product.discountPrice || product.price}</td>
+                      <td className="py-2">{product.name}</td>
+                      <td>{product.discountPrice || product.price}</td>
+                      <td className="text-xs text-gray-500">{product.shippingTime || "—"}</td>
                     <td className="text-xs text-gray-500">
                       {selectedCollections(product.collections?.map((c) => c._id || c))}
                     </td>

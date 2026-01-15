@@ -13,6 +13,7 @@ const productSchema = new mongoose.Schema({
   price: Number,
   discountPrice: Number,
   stock: Number,
+  shippingTime: { type: String, trim: true },
   colors: { type: [String], default: [] },
   sizes: { type: [String], default: [] },
   images: [String],

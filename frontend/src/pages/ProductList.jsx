@@ -504,7 +504,7 @@ export default function ProductList() {
                       <p className="card-category">{item.category || "Saree"}</p>
                       <h3>{item.name}</h3>
                       <div className="card-meta">
-                        <span>Ready to ship</span>
+                        <span>{item.shippingTime ? `Delivery in ${item.shippingTime}` : "Ready to ship"}</span>
                         {item.fabric && <span>{item.fabric}</span>}
                       </div>
                       <div className="card-price">

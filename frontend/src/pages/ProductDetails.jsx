@@ -154,6 +154,9 @@ export default function ProductDetails() {
   const discountPercent = hasDiscount
     ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
     : null;
+  const deliveryLabel = product.shippingTime
+    ? `Delivery in ${product.shippingTime}`
+    : "Delivery in 4-7 days";
   const displayReviews =
     reviews.length > 0
       ? reviews
@@ -347,7 +350,7 @@ export default function ProductDetails() {
               </div>
               <div className="flex flex-wrap gap-2 text-xs text-gray-600">
                 <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
-                  Delivery in 4-7 days
+                  {deliveryLabel}
                 </span>
                 <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
                   Free returns within 7 days
