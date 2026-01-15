@@ -32,6 +32,13 @@ const allowedOrigins = (process.env.FRONTEND_ORIGIN || "")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+const defaultOrigins = ["https://mrigmaya.com", "http://mrigmaya.com"];
+for (const origin of defaultOrigins) {
+  if (!allowedOrigins.includes(origin)) {
+    allowedOrigins.push(origin);
+  }
+}
+
 app.use(
   cors({
     credentials: true,
