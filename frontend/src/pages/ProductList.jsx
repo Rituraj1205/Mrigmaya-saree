@@ -64,7 +64,7 @@ export default function ProductList() {
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 12;
-  const maxPages =5;
+  const maxPages = 10;
   const activeMoodId = selectedMoodId || moodIdParam;
 
   useEffect(() => {

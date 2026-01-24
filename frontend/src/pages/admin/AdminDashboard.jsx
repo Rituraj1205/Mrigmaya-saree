@@ -12,6 +12,14 @@ const BLANK_IMG = "data:image/gif;base64,R0lGODlhAQABAAD/ACw=";
 const resolveOrderImage = (product) => resolveProductImage(product, BLANK_IMG);
 const HERO_CROP_ASPECT = 3 / 1;
 
+const slugify = (value = "") =>
+  value
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+
 const createImage = (url) =>
   new Promise((resolve, reject) => {
     const image = new Image();
@@ -258,7 +266,7 @@ export default function AdminDashboard() {
     { id: "collections", label: "Collections" },
     { id: "products", label: "Products" },
     { id: "coupons", label: "Coupons" },
-    // { id: "payments", label: "Payments" },
+    //{ id: "payments", label: "Payments" },
     { id: "homepage", label: "Homepage Slider" },
     { id: "usp", label: "Offers Rail" },
     { id: "orders", label: "Orders" },
@@ -1350,8 +1358,17 @@ export default function AdminDashboard() {
   };
 
   const handleCollectionSubmit = async () => {
+    if (!collectionForm.title.trim()) {
+      toast.error("Title is required");
+      return;
+    }
+    const slugValue = collectionForm.slug.trim() || slugify(collectionForm.title);
+    if (!slugValue) {
+      toast.error("Slug is required");
+      return;
+    }
     try {
-      await axios.post("/collections", collectionForm, authConfig);
+      await axios.post("/collections", { ...collectionForm, slug: slugValue }, authConfig);
       toast.success("Collection created");
       setCollectionForm(emptyCollection);
       fetchCollections();
@@ -2618,7 +2635,16 @@ export default function AdminDashboard() {
             <input
               value={collectionForm.title}
               onChange={(e) =>
-                setCollectionForm({ ...collectionForm, title: e.target.value })
+                setCollectionForm((prev) => {
+                  const nextTitle = e.target.value;
+                  const nextSlug = slugify(nextTitle);
+                  const shouldAuto = !prev.slug || prev.slug === slugify(prev.title);
+                  return {
+                    ...prev,
+                    title: nextTitle,
+                    slug: shouldAuto ? nextSlug : prev.slug
+                  };
+                })
               }
               placeholder="Title"
               className="border rounded-xl px-4 py-3"
@@ -2627,6 +2653,9 @@ export default function AdminDashboard() {
               value={collectionForm.slug}
               onChange={(e) =>
                 setCollectionForm({ ...collectionForm, slug: e.target.value })
+              }
+              onBlur={(e) =>
+                setCollectionForm((prev) => ({ ...prev, slug: slugify(e.target.value) }))
               }
               placeholder="Slug (unique)"
               className="border rounded-xl px-4 py-3"

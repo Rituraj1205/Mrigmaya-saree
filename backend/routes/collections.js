@@ -5,6 +5,26 @@ import { auth, adminOnly } from "../middleware/auth.js";
 
 const router = express.Router();
 
+const slugify = (value = "") =>
+  value
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+
+const buildUniqueSlug = async (base) => {
+  const root = slugify(base) || "collection";
+  let slug = root;
+  let counter = 1;
+  // Ensure unique slug
+  while (await Collection.exists({ slug })) {
+    counter += 1;
+    slug = `${root}-${counter}`;
+  }
+  return slug;
+};
+
 const syncProducts = async (collectionId, productIds = []) => {
   await Product.updateMany({ collections: collectionId }, { $pull: { collections: collectionId } });
   if (productIds.length) {
@@ -63,9 +83,11 @@ router.get("/slug/:slug", async (req, res) => {
 });
 
 router.post("/", auth, adminOnly, async (req, res) => {
+  const rawSlug = (req.body.slug || "").trim();
+  const normalizedSlug = rawSlug ? slugify(rawSlug) : await buildUniqueSlug(req.body.title || "");
   const payload = {
     title: req.body.title,
-    slug: req.body.slug,
+    slug: normalizedSlug,
     subtitle: req.body.subtitle,
     description: req.body.description,
     ctaLabel: req.body.ctaLabel,
@@ -98,6 +120,15 @@ router.put("/:id", auth, adminOnly, async (req, res) => {
     priority: req.body.priority,
     products: req.body.products
   };
+
+  if (payload.slug !== undefined) {
+    const normalized = slugify(payload.slug);
+    if (normalized) {
+      payload.slug = normalized;
+    } else {
+      delete payload.slug;
+    }
+  }
 
   Object.keys(payload).forEach((key) => payload[key] === undefined && delete payload[key]);
 
